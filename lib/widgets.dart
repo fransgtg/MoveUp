@@ -20,27 +20,47 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: loading ? null : onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (loading)
-              SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2, color: onPrimary))
-            else if (icon != null)
-              Icon(icon, size: 20),
-            if (loading || icon != null) const SizedBox(width: AppSpacing.sm),
-            Flexible(
-              child: Text(
-                text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+    final enabled = !loading && onPressed != null;
+    // Tombol berlatar gradasi aksen; dibuat pudar saat nonaktif atau sedang memuat
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: enabled ? 1 : 0.6,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.accentGradient,
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          boxShadow: enabled ? AppTheme.softShadow(AppTheme.accent, alpha: 0.3) : null,
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: loading ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: onPrimary,
+              disabledForegroundColor: onPrimary,
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (loading)
+                  SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2, color: onPrimary))
+                else if (icon != null)
+                  Icon(icon, size: 20),
+                if (loading || icon != null) const SizedBox(width: AppSpacing.sm),
+                Flexible(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -143,7 +163,7 @@ class StatCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
+              IconBadge(icon: icon, color: color, size: 18),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -189,21 +209,19 @@ class ActivityCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: theme.primaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppRadius.control),
-          ),
-          child: Icon(icon, color: theme.primaryColor),
-        ),
+        leading: IconBadge(icon: icon),
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+        subtitle: Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+        ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(primaryValue, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(primaryValue, style: AppTheme.display(20)),
             Text(secondaryValue, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
@@ -242,8 +260,13 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: muted.withValues(alpha: 0.6)),
-            const SizedBox(height: AppSpacing.lg),
+            Container(
+              width: 112,
+              height: 112,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent.withValues(alpha: 0.1)),
+              child: Icon(icon, size: 52, color: AppTheme.accent),
+            ),
+            const SizedBox(height: AppSpacing.xl),
             if (title != null) ...[
               Text(title!, textAlign: TextAlign.center, style: AppTheme.display(24)),
               const SizedBox(height: AppSpacing.xs),
@@ -251,11 +274,14 @@ class EmptyStateWidget extends StatelessWidget {
             Text(message, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 16)),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              OutlinedButton.icon(
+              FilledButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.add),
-                label: Text(actionLabel!),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
+                label: Text(actionLabel!, style: const TextStyle(fontWeight: FontWeight.w600)),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+                ),
               ),
             ],
           ],
@@ -445,7 +471,7 @@ class FormLayout extends StatelessWidget {
         ),
         DecoratedBox(
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
+            color: theme.canvasColor,
             border: Border(top: BorderSide(color: theme.dividerColor)),
           ),
           child: SafeArea(
@@ -539,12 +565,14 @@ void showSuccessMessage(BuildContext context, String message, {SnackBarAction? a
 
 void showErrorMessage(BuildContext context, String message) => ScaffoldMessenger.of(context).error(message);
 
-// Bar Chart
+// Bar Chart. [barColor] dan [labelColor] bisa diganti untuk dipakai di atas latar berwarna.
 class SimpleBarChart extends StatelessWidget {
   final List<double> values;
   final List<String> labels;
   final int? highlightIndex;
   final double height;
+  final Color? barColor;
+  final Color? labelColor;
 
   const SimpleBarChart({
     super.key,
@@ -552,12 +580,17 @@ class SimpleBarChart extends StatelessWidget {
     required this.labels,
     this.highlightIndex,
     this.height = 120,
+    this.barColor,
+    this.labelColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
+    final theme = Theme.of(context);
+    final color = barColor ?? theme.colorScheme.primary;
+    final muted = labelColor ?? theme.colorScheme.onSurfaceVariant;
     final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
+    final dense = values.length > 10;
 
     return SizedBox(
       height: height + 20,
@@ -567,30 +600,141 @@ class SimpleBarChart extends StatelessWidget {
           for (var i = 0; i < values.length; i++)
             Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: values.length > 10 ? 1 : 4),
+                padding: EdgeInsets.symmetric(horizontal: dense ? 1.5 : 6),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Container(
-                      // Batang kosong tetap terlihat tipis supaya sumbu terbaca
-                      height: maxValue == 0 ? 3 : (values[i] / maxValue * height).clamp(3, height),
-                      decoration: BoxDecoration(
-                        color: values[i] == 0
-                            ? Theme.of(context).dividerColor.withValues(alpha: 0.2)
-                            : (highlightIndex == null || highlightIndex == i ? primary : primary.withValues(alpha: 0.5)),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: maxValue == 0 ? 0 : values[i] / maxValue),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, t, _) {
+                        final active = highlightIndex == null || highlightIndex == i;
+                        return Container(
+                          // Batang kosong tetap terlihat tipis supaya sumbu terbaca
+                          height: (t * height).clamp(4, height),
+                          decoration: BoxDecoration(
+                            color: values[i] == 0
+                                ? muted.withValues(alpha: 0.18)
+                                : color.withValues(alpha: active ? 1 : 0.45),
+                            borderRadius: BorderRadius.circular(dense ? 3 : 6),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 4),
                     SizedBox(
                       height: 16,
-                      child: Text(labels[i], style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      child: Text(
+                        labels[i],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: muted,
+                          fontWeight: highlightIndex == i ? FontWeight.w800 : FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// Ikon kecil di atas kotak berwarna lembut, dipakai di daftar dan menu
+class IconBadge extends StatelessWidget {
+  const IconBadge({super.key, required this.icon, this.color, this.size = 22});
+
+  final IconData icon;
+  final Color? color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: EdgeInsets.all(size * 0.45),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+      ),
+      child: Icon(icon, color: c, size: size),
+    );
+  }
+}
+
+// Judul besar di puncak tab utama, dengan subjudul kecil beraksen dan aksi opsional di kanan
+class ScreenHeader extends StatelessWidget {
+  const ScreenHeader({super.key, required this.title, this.subtitle, this.actions = const []});
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (subtitle != null)
+                Text(subtitle!.toUpperCase(), style: AppTheme.display(14, color: AppTheme.accent, letterSpacing: 2)),
+              Text(title, style: AppTheme.display(34, letterSpacing: 1.5)),
+            ],
+          ),
+        ),
+        ...actions,
+      ],
+    );
+  }
+}
+
+// Kartu sorotan berlatar gradien aksen; isinya sebaiknya berwarna putih
+class HeroCard extends StatelessWidget {
+  const HeroCard({super.key, required this.child, this.padding = const EdgeInsets.all(AppSpacing.xl), this.onTap});
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.card);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: AppTheme.accentGradient,
+        borderRadius: radius,
+        boxShadow: AppTheme.softShadow(AppTheme.accent),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                // Lingkaran samar di pojok supaya gradien tidak terasa datar
+                Positioned(
+                  right: -50,
+                  top: -50,
+                  child: Container(
+                    width: 170,
+                    height: 170,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.08)),
+                  ),
+                ),
+                Padding(padding: padding, child: child),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

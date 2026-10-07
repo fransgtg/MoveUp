@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/models/goal.dart';
+import 'package:moveup/theme.dart';
+import 'package:moveup/widgets.dart';
 
 // Kartu ringkas satu target beserta progres periode berjalan
 class GoalProgressCard extends StatelessWidget {
@@ -26,8 +28,8 @@ class GoalProgressCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(goal.icon, size: 20),
-                  const SizedBox(width: 8),
+                  IconBadge(icon: goal.icon, size: 18),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       goal.title,
@@ -38,7 +40,7 @@ class GoalProgressCard extends StatelessWidget {
                   if (done) const GoalDoneBadge(),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 "${goal.categoryLabel} · ${goal.period.label}",
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
@@ -46,9 +48,10 @@ class GoalProgressCard extends StatelessWidget {
               const SizedBox(height: 12),
               LinearProgressIndicator(
                 value: progress.fraction,
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
-                backgroundColor: scheme.outline.withValues(alpha: 0.3),
+                minHeight: 10,
+                borderRadius: BorderRadius.circular(5),
+                color: done ? AppTheme.success : scheme.primary,
+                backgroundColor: scheme.outline.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 8),
               Row(
@@ -60,7 +63,7 @@ class GoalProgressCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     "${(progress.fraction * 100).round()}%",
-                    style: TextStyle(color: scheme.onSurfaceVariant),
+                    style: AppTheme.display(18, color: done ? AppTheme.success : scheme.primary),
                   ),
                 ],
               ),
@@ -77,13 +80,12 @@ class GoalDoneBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(12)),
-      child: Text(
+      decoration: BoxDecoration(color: AppTheme.success, borderRadius: BorderRadius.circular(12)),
+      child: const Text(
         "Tercapai",
-        style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
       ),
     );
   }

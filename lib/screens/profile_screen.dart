@@ -46,21 +46,43 @@ class ProfileScreen extends StatelessWidget {
     final meters = all.fold<double>(0, (sum, a) => sum + a.distanceMeters);
     final seconds = all.fold<int>(0, (sum, a) => sum + a.movingSeconds);
 
+    final faded = Colors.white.withValues(alpha: 0.75);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 100),
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: Text(profile.initials, style: AppTheme.display(36)),
+          HeroCard(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxl, AppSpacing.xl, AppSpacing.xl),
+            child: Column(
+              children: [
+                // Cincin putih di sekeliling avatar
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                  child: CircleAvatar(
+                    radius: 44,
+                    backgroundColor: const Color(0xFF141414),
+                    foregroundColor: Colors.white,
+                    child: Text(profile.initials, style: AppTheme.display(34)),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(profile.name, style: AppTheme.display(30, color: Colors.white), textAlign: TextAlign.center),
+                Text(profile.email, style: TextStyle(color: faded)),
+                const SizedBox(height: AppSpacing.xl),
+                // Total sepanjang waktu
+                Row(
+                  children: [
+                    _buildHeroStat("Aktivitas", "${all.length}"),
+                    _buildHeroStat("Total Km", formatKm(meters, decimals: 1)),
+                    _buildHeroStat("Total Waktu", formatDurationShort(seconds)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(profile.name, style: AppTheme.display(30), textAlign: TextAlign.center),
-          Text(profile.email, style: TextStyle(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.lg),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -71,55 +93,58 @@ class ProfileScreen extends StatelessWidget {
               for (final sport in profile.favoriteSports) Chip(avatar: Icon(sport.icon, size: 18), label: Text(sport.label)),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
-          // Total sepanjang waktu
+          // Data tubuh
           Card(
+            margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStat(context, "Aktivitas", "${all.length}"),
-                  _buildStat(context, "Total Jarak", "${formatKm(meters, decimals: 1)} km"),
-                  _buildStat(context, "Total Waktu", formatDurationShort(seconds)),
+                  _buildStat(context, "Berat", "${_number(profile.weightKg)} kg"),
+                  Container(height: 40, width: 1, color: scheme.outline),
+                  _buildStat(context, "Tinggi", "${_number(profile.heightCm)} cm"),
+                  Container(height: 40, width: 1, color: scheme.outline),
+                  _buildStat(context, "BMI · ${profile.bmiCategory}", profile.bmi.toStringAsFixed(1).replaceAll('.', ',')),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Data tubuh
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStat(context, "Berat", "${_number(profile.weightKg)} kg"),
-              Container(height: 40, width: 1, color: scheme.outline),
-              _buildStat(context, "Tinggi", "${_number(profile.heightCm)} cm"),
-              Container(height: 40, width: 1, color: scheme.outline),
-              _buildStat(context, "BMI · ${profile.bmiCategory}", profile.bmi.toStringAsFixed(1).replaceAll('.', ',')),
-            ],
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
 
           // Menus
-          _buildMenuItem(context, Icons.edit_outlined, "Edit Profil", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(profile: profile)));
-          }),
-          _buildMenuItem(context, Icons.track_changes, "Target (Goal Setting)", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalsScreen()));
-          }),
-          _buildMenuItem(context, Icons.notifications_none, "Pengaturan Reminder", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen()));
-          }),
-          _buildMenuItem(context, Icons.security, "Keamanan Akun", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
-          }),
-          _buildMenuItem(context, Icons.settings_outlined, "Pengaturan", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-          }),
-          const SizedBox(height: 20),
-          _buildMenuItem(context, Icons.logout, "Logout", color: Theme.of(context).colorScheme.error, onTap: () => _confirmLogout(context)),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Column(
+                children: [
+                  _buildMenuItem(context, Icons.edit_outlined, "Edit Profil", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(profile: profile)));
+                  }),
+                  _buildMenuItem(context, Icons.track_changes, "Target (Goal Setting)", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalsScreen()));
+                  }),
+                  _buildMenuItem(context, Icons.notifications_none, "Pengaturan Reminder", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen()));
+                  }),
+                  _buildMenuItem(context, Icons.security, "Keamanan Akun", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+                  }),
+                  _buildMenuItem(context, Icons.settings_outlined, "Pengaturan", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  }),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Card(
+            margin: EdgeInsets.zero,
+            child: _buildMenuItem(context, Icons.logout, "Logout", color: Theme.of(context).colorScheme.error, onTap: () => _confirmLogout(context)),
+          ),
         ],
       ),
     );
@@ -136,17 +161,21 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildHeroStat(String label, String val) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(val, style: AppTheme.display(26, color: Colors.white)),
+          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMenuItem(BuildContext context, IconData icon, String title, {Color? color, VoidCallback? onTap}) {
     return ListTile(
       onTap: onTap,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: (color ?? Theme.of(context).primaryColor).withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color ?? Theme.of(context).primaryColor),
-      ),
+      leading: IconBadge(icon: icon, color: color, size: 20),
       title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
       trailing: const Icon(Icons.chevron_right, size: 20),
     );

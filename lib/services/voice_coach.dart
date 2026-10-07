@@ -99,12 +99,17 @@ class VoiceCoach {
 
   final _tts = FlutterTts();
   bool _ready = false;
+  bool _indonesian = false;
+
+  // Suara bahasa Indonesia membaca "pace" sebagai "pa-ce"; ejaan "peis" terdengar seperti pelafalan Inggrisnya
+  static String forIndonesianSpeech(String text) =>
+      text.replaceAllMapped(RegExp(r'\b([Pp])ace\b'), (m) => '${m[1]}eis');
 
   Future<void> _init() async {
     if (_ready) return;
     try {
-      final hasIndonesian = await _tts.isLanguageAvailable('id-ID') == true;
-      await _tts.setLanguage(hasIndonesian ? 'id-ID' : 'en-US');
+      _indonesian = await _tts.isLanguageAvailable('id-ID') == true;
+      await _tts.setLanguage(_indonesian ? 'id-ID' : 'en-US');
       await _tts.setSpeechRate(0.5);
       // Pengumuman berikutnya menunggu yang sebelumnya selesai (1 = antre)
       await _tts.setQueueMode(1);
@@ -119,7 +124,7 @@ class VoiceCoach {
     await _init();
     if (!_ready) return;
     try {
-      await _tts.speak(text, focus: true);
+      await _tts.speak(_indonesian ? forIndonesianSpeech(text) : text, focus: true);
     } catch (e) {
       debugPrint('Gagal membacakan pengumuman: $e');
     }

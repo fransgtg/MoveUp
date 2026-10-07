@@ -60,4 +60,11 @@ void main() {
     expect(KmAnnouncer.spokenDuration(3725), '1 jam 2 menit 5 detik');
     expect(KmAnnouncer.spokenDuration(360), '6 menit');
   });
+
+  test('kata pace dieja ulang agar dilafalkan benar oleh suara Indonesia', () {
+    expect(VoiceCoach.forIndonesianSpeech('Pace kilometer ini 6 menit. Pace rata-rata 6 menit.'),
+        'Peis kilometer ini 6 menit. Peis rata-rata 6 menit.');
+    expect(VoiceCoach.forIndonesianSpeech('tips pace lari'), 'tips peis lari');
+    expect(VoiceCoach.forIndonesianSpeech('Jarak 1 kilometer.'), 'Jarak 1 kilometer.');
+  });
 }

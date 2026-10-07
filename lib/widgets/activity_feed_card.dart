@@ -14,11 +14,11 @@ class ActivityFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).primaryColor;
+    final scheme = Theme.of(context).colorScheme;
     final (paceLabel, paceValue) = paceOrSpeed(activity);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -30,8 +30,8 @@ class ActivityFeedCard extends StatelessWidget {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    backgroundColor: scheme.onSurface,
+                    foregroundColor: scheme.surface,
                     child: Text(ProfileService.instance.profile?.initials ?? '?', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 12),
@@ -40,18 +40,29 @@ class ActivityFeedCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(ProfileService.instance.profile?.name ?? 'Pengguna', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Row(
-                          children: [
-                            Icon(activity.type.icon, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                formatRelativeDateTime(activity.startTime),
-                                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          formatRelativeDateTime(activity.startTime),
+                          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Label jenis olahraga beraksen
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(activity.type.icon, size: 14, color: scheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          activity.type.label,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.primary),
                         ),
                       ],
                     ),
@@ -70,16 +81,27 @@ class ActivityFeedCard extends StatelessWidget {
               ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  _FeedStat(label: 'Jarak', value: '${formatKm(activity.distanceMeters)} km'),
-                  _FeedStat(label: paceLabel, value: paceValue),
-                  _FeedStat(label: 'Waktu', value: formatDurationShort(activity.movingSeconds)),
-                ],
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    _FeedStat(label: 'Jarak', value: '${formatKm(activity.distanceMeters)} km'),
+                    VerticalDivider(width: 24, color: scheme.outline),
+                    _FeedStat(label: paceLabel, value: paceValue),
+                    VerticalDivider(width: 24, color: scheme.outline),
+                    _FeedStat(label: 'Waktu', value: formatDurationShort(activity.movingSeconds)),
+                  ],
+                ),
               ),
             ),
             // Peta rute lalu foto, bisa digeser seperti feed Strava
-            if (ActivityMedia.hasMedia(activity)) ActivityMedia(activity: activity),
+            if (ActivityMedia.hasMedia(activity))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.card - 6),
+                  child: ActivityMedia(activity: activity),
+                ),
+              ),
           ],
         ),
       ),
@@ -99,9 +121,9 @@ class _FeedStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(label.toUpperCase(), style: AppTheme.display(12, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 1.2)),
           const SizedBox(height: 2),
-          Text(value, style: AppTheme.display(22)),
+          Text(value, style: AppTheme.display(22), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

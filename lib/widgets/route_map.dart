@@ -69,7 +69,7 @@ class RouteMap extends StatelessWidget {
         FlutterMap(
           options: MapOptions(
             initialCenter: coords.first,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            backgroundColor: Theme.of(context).canvasColor,
             initialZoom: 16,
             initialCameraFit: coords.length > 1
                 ? CameraFit.coordinates(coordinates: coords, padding: EdgeInsets.all(compact ? 8 : 32), maxZoom: 17)

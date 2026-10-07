@@ -28,13 +28,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("RIWAYAT", style: AppTheme.display(30, letterSpacing: 1.5)),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.sm),
+            child: ScreenHeader(
+              subtitle: _filter?.label ?? "Semua aktivitas",
+              title: "RIWAYAT",
+              actions: [
                 PopupMenuButton<String>(
-                  icon: Icon(_filter == null ? Icons.filter_alt_outlined : Icons.filter_alt),
+                  icon: Icon(_filter == null ? Icons.filter_alt_outlined : Icons.filter_alt,
+                      color: _filter == null ? null : AppTheme.accent),
                   tooltip: "Filter olahraga",
                   onSelected: (value) => setState(() => _filter = value == 'all' ? null : SportType.fromName(value)),
                   itemBuilder: (_) => [
@@ -81,17 +82,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   rows.add(a);
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 100),
                   itemCount: rows.length,
                   itemBuilder: (context, i) => switch (rows[i]) {
                     final String month => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.lg, 0, AppSpacing.sm),
                         child: Text(
-                          month,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          month.toUpperCase(),
+                          style: AppTheme.display(15, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 2),
                         ),
                       ),
                     final Activity a => _HistoryTile(

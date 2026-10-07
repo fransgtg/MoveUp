@@ -59,37 +59,33 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("STATISTIK", style: AppTheme.display(30, letterSpacing: 1.5)),
+                ScreenHeader(subtitle: _monthly ? monthNames[now.month - 1] : "Minggu ini", title: "STATISTIK"),
                 const SizedBox(height: 20),
                 _buildToggle(context),
                 const SizedBox(height: 12),
                 _buildSportFilter(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatItem("Total Sesi", "${period.length}"),
-                    _buildStatItem("Durasi", formatDurationShort(seconds)),
-                    _buildStatItem("Jarak", "${formatKm(meters, decimals: 1)} km"),
+                    _buildStatItem(Icons.local_fire_department_outlined, "Sesi", "${period.length}"),
+                    const SizedBox(width: AppSpacing.md),
+                    _buildStatItem(Icons.timer_outlined, "Durasi", formatDurationShort(seconds)),
+                    const SizedBox(width: AppSpacing.md),
+                    _buildStatItem(Icons.straighten, "Km", formatKm(meters, decimals: 1)),
                   ],
                 ),
-                const SizedBox(height: 32),
-                Text("Jarak (km)", style: AppTheme.display(22)),
-                const SizedBox(height: 16),
-                SimpleBarChart(values: distance, labels: labels, highlightIndex: todayIndex),
-                const SizedBox(height: 32),
-                Text("Kalori Terbakar", style: AppTheme.display(22)),
-                const SizedBox(height: 16),
-                SimpleBarChart(values: calories, labels: labels, highlightIndex: todayIndex),
-                const SizedBox(height: 32),
-                Text("Rekor Pribadi", style: AppTheme.display(22)),
+                const SizedBox(height: 20),
+                _buildChartCard("Jarak", "km", distance, labels, todayIndex),
+                const SizedBox(height: AppSpacing.lg),
+                _buildChartCard("Kalori Terbakar", "kkal", calories, labels, todayIndex),
+                const SizedBox(height: 28),
+                Text("Rekor Pribadi", style: AppTheme.display(24)),
                 const SizedBox(height: 12),
                 ..._buildRecords(store.activities.where(_matches).toList()),
-                const SizedBox(height: 40),
               ],
             ),
           );
@@ -104,16 +100,20 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       return Expanded(
         child: GestureDetector(
           onTap: () => setState(() => _monthly = monthly),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? Theme.of(context).primaryColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              color: selected ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+              borderRadius: BorderRadius.circular(30),
             ),
             child: Center(
               child: Text(
                 label,
-                style: TextStyle(color: selected ? Theme.of(context).colorScheme.onPrimary : null, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: selected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -122,9 +122,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
 
     return Container(
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Row(children: [option("Mingguan", false), option("Bulanan", true)]),
     );
@@ -183,9 +185,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
-                Icon(type.icon, size: 20),
-                const SizedBox(width: 8),
-                Text(type.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                IconBadge(icon: type.icon, size: 18),
+                const SizedBox(width: 12),
+                Text(type.label, style: AppTheme.display(20)),
               ],
             ),
           ),
@@ -202,20 +204,56 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _recordTile(IconData icon, String label, String value, Activity from) {
     return ListTile(
-      leading: Icon(icon, color: Theme.of(context).primaryColor),
-      title: Text(label),
-      subtitle: Text("${from.title} · ${formatDate(from.startTime)}"),
-      trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text("${from.title} · ${formatDate(from.startTime)}", style: const TextStyle(fontSize: 12)),
+      trailing: Text(value, style: AppTheme.display(20, color: AppTheme.accent)),
     );
   }
 
-  Widget _buildStatItem(String label, String val) {
-    return Column(
-      children: [
-        Text(val, style: AppTheme.display(30)),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ],
+  Widget _buildStatItem(IconData icon, String label, String val) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 20, color: AppTheme.accent),
+              const SizedBox(height: AppSpacing.sm),
+              FittedBox(child: Text(val, style: AppTheme.display(28))),
+              Text(label, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartCard(String title, String unit, List<double> values, List<String> labels, int todayIndex) {
+    final total = values.fold<double>(0, (sum, v) => sum + v);
+    final totalLabel = unit == "km" ? total.toStringAsFixed(1).replaceAll('.', ',') : total.round().toString();
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(child: Text(title, style: AppTheme.display(20))),
+              Text(totalLabel, style: AppTheme.display(20, color: AppTheme.accent)),
+              const SizedBox(width: 4),
+              Text(unit, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SimpleBarChart(values: values, labels: labels, highlightIndex: todayIndex),
+        ],
+      ),
     );
   }
 }

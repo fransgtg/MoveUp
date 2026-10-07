@@ -3,11 +3,13 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
+import 'package:moveup/screens/coach_chat_screen.dart';
 import 'package:moveup/screens/goal_detail_screen.dart';
 import 'package:moveup/screens/goals_screen.dart';
 import 'package:moveup/screens/reminder_screen.dart';
 import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/services/goal_store.dart';
+import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/services/reminder_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
@@ -24,30 +26,34 @@ class DashboardScreen extends StatelessWidget {
 
     return SafeArea(
       child: ListenableBuilder(
-        listenable: Listenable.merge([store, GoalStore.instance, ReminderStore.instance]),
+        listenable: Listenable.merge([store, GoalStore.instance, ReminderStore.instance, ProfileService.instance]),
         builder: (context, _) {
           final activities = store.activities;
           final now = DateTime.now();
           final weekStart = startOfWeek(now);
           final week = store.between(weekStart, weekStart.add(const Duration(days: 7)));
 
+          final firstName = ProfileService.instance.profile?.name.split(' ').first;
+
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, 100),
             children: [
-              Row(
-                children: [
-                  Text("BERANDA", style: AppTheme.display(30, letterSpacing: 1.5)),
-                  const Spacer(),
-                  IconButton(
+              ScreenHeader(
+                subtitle: _greeting(now),
+                title: firstName == null || firstName.isEmpty ? "BERANDA" : "Halo, $firstName",
+                actions: [
+                  IconButton.filledTonal(
                     icon: const Icon(Icons.edit_note),
                     tooltip: "Tambah aktivitas manual",
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddActivityScreen())),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xl),
               _WeekSummaryCard(week: week, todayIndex: now.weekday - 1),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
+              const _CoachCard(),
+              const SizedBox(height: AppSpacing.xl),
               _PlanSection(now: now),
               if (activities.isEmpty)
                 Padding(
@@ -61,8 +67,8 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 )
               else ...[
-                Text("Aktivitas Terbaru", style: AppTheme.display(22)),
-                const SizedBox(height: 8),
+                Text("Aktivitas Terbaru", style: AppTheme.display(24)),
+                const SizedBox(height: AppSpacing.md),
                 for (final activity in activities)
                   ActivityFeedCard(
                     activity: activity,
@@ -75,6 +81,51 @@ class DashboardScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  static String _greeting(DateTime now) {
+    final h = now.hour;
+    if (h < 11) return "Selamat pagi";
+    if (h < 15) return "Selamat siang";
+    if (h < 18) return "Selamat sore";
+    return "Selamat malam";
+  }
+}
+
+// Pintu masuk ke chat MoveUp Coach
+class _CoachCard extends StatelessWidget {
+  const _CoachCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CoachChatScreen())),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppTheme.accentGradient),
+            child: const Icon(Icons.sports_gymnastics, color: Colors.white),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Tanya MoveUp Coach", style: AppTheme.display(20)),
+                Text(
+                  "Saran latihan berdasarkan datamu",
+                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chat_bubble_outline, color: scheme.primary),
+        ],
       ),
     );
   }
@@ -97,37 +148,53 @@ class _WeekSummaryCard extends StatelessWidget {
       seconds += a.movingSeconds;
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Minggu Ini", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _summaryStat(context, "Aktivitas", "${week.length}"),
-                _summaryStat(context, "Jarak", "${formatKm(meters)} km"),
-                _summaryStat(context, "Waktu", formatDurationShort(seconds)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SimpleBarChart(values: perDay, labels: dayInitials, highlightIndex: todayIndex, height: 60),
-          ],
-        ),
-      ),
-    );
-  }
+    final faded = Colors.white.withValues(alpha: 0.75);
 
-  Widget _summaryStat(BuildContext context, String label, String value) {
-    return Expanded(
+    return HeroCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 2),
-          Text(value, style: AppTheme.display(22)),
+          Row(
+            children: [
+              Text("MINGGU INI", style: AppTheme.display(16, color: faded, letterSpacing: 2)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "${week.length} aktivitas",
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Jarak dibuat paling besar karena itu angka yang paling sering dicari
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(formatKm(meters), style: AppTheme.display(56, color: Colors.white)),
+              const SizedBox(width: 6),
+              Text("km", style: AppTheme.display(22, color: faded)),
+              const Spacer(),
+              Icon(Icons.timer_outlined, size: 18, color: faded),
+              const SizedBox(width: 4),
+              Text(formatDurationShort(seconds), style: AppTheme.display(22, color: Colors.white)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SimpleBarChart(
+            values: perDay,
+            labels: dayInitials,
+            highlightIndex: todayIndex,
+            height: 64,
+            barColor: Colors.white,
+            labelColor: faded,
+          ),
         ],
       ),
     );
@@ -156,11 +223,19 @@ class _PlanSection extends StatelessWidget {
       children: [
         if (next.isNotEmpty)
           Card(
-            margin: const EdgeInsets.only(bottom: 16),
+            margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
-              leading: Icon(next.first.$1.sportType.icon),
-              title: Text("Jadwal berikutnya: ${next.first.$1.title}"),
-              subtitle: Text(formatRelativeDateTime(next.first.$2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+              leading: IconBadge(icon: next.first.$1.sportType.icon),
+              title: Text(
+                "JADWAL BERIKUTNYA",
+                style: AppTheme.display(13, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 1.5),
+              ),
+              subtitle: Text(
+                "${next.first.$1.title} · ${formatRelativeDateTime(next.first.$2)}",
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen())),
             ),
@@ -168,7 +243,7 @@ class _PlanSection extends StatelessWidget {
         if (progress.isNotEmpty) ...[
           Row(
             children: [
-              Expanded(child: Text("Target", style: AppTheme.display(22))),
+              Expanded(child: Text("Target", style: AppTheme.display(24))),
               TextButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalsScreen())),
                 child: Text("Lihat semua (${progress.length})"),

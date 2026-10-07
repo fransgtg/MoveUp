@@ -10,7 +10,8 @@ class SettingsService extends ChangeNotifier {
 
   static final instance = SettingsService._();
 
-  ThemeMode _themeMode = ThemeMode.system;
+  // Default gelap: tema utama aplikasi; pengguna tetap bisa memilih Terang atau Sistem
+  ThemeMode _themeMode = ThemeMode.dark;
   bool _voiceCoach = true;
 
   ThemeMode get themeMode => _themeMode;
@@ -28,7 +29,7 @@ class SettingsService extends ChangeNotifier {
       final file = await _file();
       if (!await file.exists()) return;
       final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      _themeMode = ThemeMode.values.asNameMap()[json['themeMode']] ?? ThemeMode.system;
+      _themeMode = ThemeMode.values.asNameMap()[json['themeMode']] ?? ThemeMode.dark;
       _voiceCoach = json['voiceCoach'] as bool? ?? true;
       notifyListeners();
     } catch (e) {

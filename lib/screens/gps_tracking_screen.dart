@@ -266,7 +266,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
               mapController: _mapController,
               options: MapOptions(
                 initialCenter: _current ?? _defaultCenter,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                backgroundColor: Theme.of(context).canvasColor,
                 initialZoom: 17,
                 interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
                 onMapReady: () {
@@ -439,7 +439,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: Theme.of(context).canvasColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5))],
       ),
