@@ -3,6 +3,7 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
+import 'package:moveup/screens/chat_list_screen.dart';
 import 'package:moveup/screens/coach_chat_screen.dart';
 import 'package:moveup/screens/goal_detail_screen.dart';
 import 'package:moveup/screens/goals_screen.dart';
@@ -42,6 +43,11 @@ class DashboardScreen extends StatelessWidget {
                 subtitle: _greeting(now),
                 title: firstName == null || firstName.isEmpty ? "BERANDA" : "Halo, $firstName",
                 actions: [
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    tooltip: "Pesan",
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen())),
+                  ),
                   IconButton.filledTonal(
                     icon: const Icon(Icons.edit_note),
                     tooltip: "Tambah aktivitas manual",

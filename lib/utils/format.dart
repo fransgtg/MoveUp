@@ -56,6 +56,23 @@ String formatRelativeDateTime(DateTime d) {
   return '$prefix pukul ${formatTime(d)}';
 }
 
+// Pemisah tanggal di ruang chat: Hari ini, Kemarin, atau 12 Okt 2026
+String formatChatDay(DateTime d) {
+  final now = DateTime.now();
+  final diff = DateTime(now.year, now.month, now.day).difference(DateTime(d.year, d.month, d.day)).inDays;
+  return switch (diff) {
+    0 => 'Hari ini',
+    1 => 'Kemarin',
+    _ => formatDate(d),
+  };
+}
+
+// Waktu di daftar percakapan: jam untuk hari ini, selain itu tanggal
+String formatChatTime(DateTime d) {
+  final label = formatChatDay(d);
+  return label == 'Hari ini' ? formatTime(d) : label;
+}
+
 // Judul otomatis seperti "Lari Pagi" atau "Bersepeda Sore"
 String defaultTitle(SportType type, DateTime start) {
   final h = start.hour;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/screens/change_password_screen.dart';
+import 'package:moveup/screens/chat_list_screen.dart';
 import 'package:moveup/screens/edit_profile_screen.dart';
 import 'package:moveup/screens/goals_screen.dart';
 import 'package:moveup/screens/reminder_screen.dart';
@@ -129,6 +130,9 @@ class ProfileScreen extends StatelessWidget {
                   }),
                   _buildMenuItem(context, Icons.notifications_none, "Pengaturan Reminder", onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen()));
+                  }),
+                  _buildMenuItem(context, Icons.chat_bubble_outline, "Pesan", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen()));
                   }),
                   _buildMenuItem(context, Icons.security, "Keamanan Akun", onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));

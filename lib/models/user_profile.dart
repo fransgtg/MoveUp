@@ -45,12 +45,7 @@ class UserProfile {
   final FitnessLevel level;
   final List<SportType> favoriteSports;
 
-  String get initials {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
+  String get initials => initialsOf(name);
 
   int get age => ageOn(birthDate, DateTime.now());
 
@@ -93,4 +88,11 @@ int ageOn(DateTime birthDate, DateTime today) {
   var age = today.year - birthDate.year;
   if (today.month < birthDate.month || (today.month == birthDate.month && today.day < birthDate.day)) age--;
   return age;
+}
+
+String initialsOf(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return '?';
+  if (parts.length == 1) return parts.first[0].toUpperCase();
+  return (parts.first[0] + parts.last[0]).toUpperCase();
 }

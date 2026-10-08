@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/save_activity_screen.dart';
 import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/services/recording_notification.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/route_map.dart';
@@ -52,6 +53,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   String? _error;
   // Dibuat saat mulai merekam, karena jenis olahraga bisa diganti sebelum itu
   KmAnnouncer? _announcer;
+  DateTime _lastNotified = DateTime(0);
 
   @override
   void initState() {
@@ -64,6 +66,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
     _positionSub?.cancel();
     _ticker?.cancel();
     VoiceCoach.instance.stop();
+    RecordingNotification.stop();
     super.dispose();
   }
 
@@ -94,7 +97,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
   LocationSettings _locationSettings() {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        // Notifikasi foreground service menjaga GPS tetap jalan saat layar mati
+        // GPS tetap jalan saat layar mati berkat foreground service dari RecordingNotification
         return AndroidSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 3,
@@ -102,11 +105,6 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
           // dan tetap jalan di perangkat tanpa Google Play Services
           forceLocationManager: true,
           intervalDuration: const Duration(seconds: 1),
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationTitle: "MoveUp sedang merekam",
-            notificationText: "Lokasi dipakai untuk merekam rute aktivitas Anda",
-            enableWakeLock: true,
-          ),
         );
       case TargetPlatform.iOS:
         return AppleSettings(
@@ -141,6 +139,10 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
         _points.add(TrackPoint(point.latitude, point.longitude, now, _segment));
       }
     });
+    // Dibatasi supaya tidak kena batas frekuensi update notifikasi dari Android
+    if (_state == _RecordState.recording && DateTime.now().difference(_lastNotified) >= const Duration(seconds: 3)) {
+      _updateNotification();
+    }
     if (_mapReady && _followUser) _mapController.move(point, _mapController.camera.zoom);
   }
 
@@ -164,25 +166,29 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
     _stopwatch.start();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
     setState(() => _state = _RecordState.recording);
+    final (title, body) = _notificationText();
+    RecordingNotification.start(title: title, body: body, elapsed: _stopwatch.elapsed);
   }
 
   void _pause() {
     _stopwatch.stop();
     setState(() => _state = _RecordState.paused);
+    _updateNotification();
   }
 
   void _resume() {
     _stopwatch.start();
     _segment++;
     setState(() => _state = _RecordState.recording);
+    _updateNotification();
   }
 
   void _finish() {
     _stopwatch.stop();
     _ticker?.cancel();
-    // Menghentikan stream juga menghentikan notifikasi foreground service
     _positionSub?.cancel();
     _positionSub = null;
+    RecordingNotification.stop();
 
     final start = _startTime!;
     final draft = Activity(
@@ -195,6 +201,36 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
       points: List.of(_points),
     );
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SaveActivityScreen(draft: draft)));
+  }
+
+  String get _paceText {
+    final seconds = _stopwatch.elapsed.inSeconds;
+    final km = _distanceMeters / 1000;
+    return _type.showsSpeed
+        ? formatSpeed(seconds == 0 ? 0 : km / (seconds / 3600))
+        : formatPace(km < 0.01 ? null : seconds / km);
+  }
+
+  int get _kcal => _type.caloriesFor(
+      meters: _distanceMeters, seconds: _stopwatch.elapsed.inSeconds, weightKg: ProfileService.instance.weightKg);
+
+  (String, String) _notificationText() {
+    final title = _state == _RecordState.paused
+        ? "${_type.label} · Dijeda ${formatDuration(_stopwatch.elapsed.inSeconds)}"
+        : "${_type.label} · Merekam";
+    final pace = _type.showsSpeed ? "$_paceText km/j" : "Pace $_paceText /km";
+    return (title, "${formatKm(_distanceMeters)} km · $pace · $_kcal kcal");
+  }
+
+  void _updateNotification() {
+    _lastNotified = DateTime.now();
+    final (title, body) = _notificationText();
+    RecordingNotification.update(
+      title: title,
+      body: body,
+      running: _state == _RecordState.recording,
+      elapsed: _stopwatch.elapsed,
+    );
   }
 
   Future<void> _confirmDiscard() async {
@@ -430,11 +466,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
 
   Widget _buildStatsPanel(ColorScheme scheme) {
     final seconds = _stopwatch.elapsed.inSeconds;
-    final km = _distanceMeters / 1000;
-    final paceStat = _type.showsSpeed
-        ? _buildMiniStat(formatSpeed(seconds == 0 ? 0 : km / (seconds / 3600)), "km/j")
-        : _buildMiniStat(formatPace(km < 0.01 ? null : seconds / km), "Pace /km");
-    final kcal = _type.caloriesFor(meters: _distanceMeters, seconds: seconds, weightKg: ProfileService.instance.weightKg);
+    final paceStat = _buildMiniStat(_paceText, _type.showsSpeed ? "km/j" : "Pace /km");
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
@@ -458,7 +490,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
               children: [
                 _buildMiniStat(formatKm(_distanceMeters), "KM"),
                 paceStat,
-                _buildMiniStat("$kcal", "Kcal"),
+                _buildMiniStat("$_kcal", "Kcal"),
               ],
             ),
             const SizedBox(height: 24),

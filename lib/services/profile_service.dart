@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moveup/models/user_profile.dart';
+import 'package:moveup/services/chat_service.dart';
 
 class ProfileService extends ChangeNotifier {
   ProfileService._();
@@ -24,6 +25,7 @@ class ProfileService extends ChangeNotifier {
     final snap = await _doc(uid).get();
     final data = snap.data();
     _profile = data == null ? null : UserProfile.fromMap(uid, data);
+    if (_profile != null) _publish(_profile!);
     notifyListeners();
     return _profile;
   }
@@ -45,7 +47,13 @@ class ProfileService extends ChangeNotifier {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
     _profile = profile;
+    _publish(profile);
     notifyListeners();
+  }
+
+  // Direktori chat bersifat pelengkap, jadi kegagalannya tidak menggagalkan simpan profil
+  void _publish(UserProfile profile) {
+    ChatService.publishProfile(profile).catchError((Object e) => debugPrint('Gagal memperbarui direktori chat: $e'));
   }
 
   void clear() {
