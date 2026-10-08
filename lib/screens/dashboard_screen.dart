@@ -3,6 +3,7 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
+import 'package:moveup/screens/chat_list_screen.dart';
 import 'package:moveup/screens/goal_detail_screen.dart';
 import 'package:moveup/screens/goals_screen.dart';
 import 'package:moveup/screens/reminder_screen.dart';
@@ -38,6 +39,11 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Text("BERANDA", style: AppTheme.display(30, letterSpacing: 1.5)),
                   const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    tooltip: "Pesan",
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen())),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit_note),
                     tooltip: "Tambah aktivitas manual",

@@ -1,11 +1,65 @@
 rules_version = '2';
 
-// Setiap pengguna hanya boleh membaca dan menulis dokumen profilnya sendiri
+// Profil lengkap hanya bisa dibaca pemiliknya. Pengguna lain hanya melihat publicProfiles
+// (nama, email, level, olahraga favorit) untuk mencari lawan chat.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, delete: if isOwner(uid);
       allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+    }
+
+    match /publicProfiles/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if isOwner(uid) && validPublicProfile(request.resource.data);
+      allow delete: if isOwner(uid);
+    }
+
+    // ID percakapan = dua uid yang diurutkan lalu digabung dengan '_'
+    match /chats/{chatId} {
+      allow get: if isMember(chatId);
+      allow list: if request.auth != null && request.auth.uid in resource.data.members;
+      allow create, update: if isMember(chatId) && validChat(chatId, request.resource.data);
+
+      match /messages/{messageId} {
+        allow read: if isMember(chatId);
+        // Pesan tidak bisa diubah atau dihapus
+        allow create: if isMember(chatId) && validMessage(request.resource.data);
+      }
+    }
+
+    function isMember(chatId) {
+      return request.auth != null && request.auth.uid in chatId.split('_');
+    }
+
+    function validPublicProfile(data) {
+      return data.keys().hasOnly(['name', 'nameLower', 'email', 'level', 'favoriteSports'])
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 50
+        && data.nameLower == data.name.lower()
+        && data.email == request.auth.token.email.lower()
+        && data.level in ['beginner', 'intermediate', 'advanced']
+        && data.favoriteSports is list;
+    }
+
+    function validChat(chatId, data) {
+      return data.keys().hasOnly(['members', 'names', 'lastMessage', 'lastSenderId', 'updatedAt'])
+        && data.members == chatId.split('_')
+        && data.members.size() == 2 && data.members[0] < data.members[1]
+        && data.names is map && data.names.keys().hasOnly(data.members)
+        && data.lastSenderId == request.auth.uid
+        && validText(data.lastMessage)
+        && data.updatedAt == request.time;
+    }
+
+    function validMessage(data) {
+      return data.keys().hasOnly(['senderId', 'text', 'createdAt'])
+        && data.senderId == request.auth.uid
+        && validText(data.text)
+        && data.createdAt == request.time;
+    }
+
+    function validText(text) {
+      return text is string && text.size() >= 1 && text.size() <= 1000;
     }
 
     function isOwner(uid) {
