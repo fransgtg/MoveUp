@@ -82,43 +82,69 @@ class ActivityDetailScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          if (activity.points.isNotEmpty)
-            SizedBox(
-              height: 300,
-              child: RouteMap(points: activity.points, interactive: true),
-            ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      child: Text(
-                        ProfileService.instance.profile?.initials ?? '?',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                Text(
+                  '${formatDate(activity.startTime)} · ${formatTime(activity.startTime)}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(activity.title, style: AppTheme.display(38)),
+                Text(
+                  ProfileService.instance.profile?.name ?? 'Pengguna',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns =
+                        constraints.maxWidth < 280 ||
+                            MediaQuery.textScalerOf(context).scale(16) > 24
+                        ? 1
+                        : 2;
+                    final width =
+                        (constraints.maxWidth - (columns - 1) * 10) / columns;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
-                        Text(
-                          ProfileService.instance.profile?.name ?? 'Pengguna',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          "${formatDate(activity.startTime)} pukul ${formatTime(activity.startTime)}",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
+                        for (final stat in [
+                          (
+                            Icons.route_outlined,
+                            'Jarak',
+                            '${formatKm(activity.distanceMeters)} km',
                           ),
-                        ),
+                          (
+                            Icons.timer_outlined,
+                            'Waktu bergerak',
+                            formatDuration(activity.movingSeconds),
+                          ),
+                          (
+                            Icons.speed_rounded,
+                            '$paceLabel rata-rata',
+                            paceValue,
+                          ),
+                          (
+                            Icons.local_fire_department_outlined,
+                            'Kalori',
+                            '${activity.calories} kcal',
+                          ),
+                        ])
+                          SizedBox(
+                            width: width,
+                            child: _DetailStat(
+                              icon: stat.$1,
+                              label: stat.$2,
+                              value: stat.$3,
+                            ),
+                          ),
                       ],
                     );
                   },
@@ -156,32 +182,6 @@ class ActivityDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    _DetailStat(
-                      label: "Jarak",
-                      value: "${formatKm(activity.distanceMeters)} km",
-                    ),
-                    _DetailStat(
-                      label: "$paceLabel rata-rata",
-                      value: paceValue,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _DetailStat(
-                      label: "Waktu bergerak",
-                      value: formatDuration(activity.movingSeconds),
-                    ),
-                    _DetailStat(
-                      label: "Kalori",
-                      value: "${activity.calories} kcal",
-                    ),
-                  ],
-                ),
                 if (splits.isNotEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
@@ -250,14 +250,23 @@ class _DetailStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            children: [
+              Icon(icon, color: scheme.primary, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(value, style: AppTheme.display(28)),
+          const SizedBox(height: 10),
+          Text(value, style: AppTheme.display(27)),
         ],
       ),
     );

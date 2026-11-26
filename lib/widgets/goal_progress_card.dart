@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/models/goal.dart';
+import 'package:moveup/theme.dart';
+import 'package:moveup/widgets.dart';
 import 'package:moveup/widgets/like_button.dart';
 
 // Kartu ringkas satu target beserta progres periode berjalan
@@ -83,6 +85,7 @@ class GoalDoneBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

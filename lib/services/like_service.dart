@@ -1,31 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:moveup/services/auth_service.dart';
 
-class LikeService extends ChangeNotifier {
+class LikeService {
   LikeService._();
 
   static final instance = LikeService._();
-  final Map<String, bool> _localLikes = {};
-
   String targetId(String type, String id) => '$type:$id';
-
-  String get _uid =>
-      FirebaseAuth.instance.currentUser?.uid ??
-      (AuthService.skipLogin ? AuthService.demoUid : '');
 
   DocumentReference<Map<String, dynamic>> _targetRef(String targetId) =>
       FirebaseFirestore.instance.collection('likes').doc(targetId);
 
   Stream<int> countStream(String type, String id) {
     final targetId = this.targetId(type, id);
-    if (_uid.isEmpty) {
-      return Stream.value(_localLikes[targetId] == true ? 1 : 0);
-    }
-    if (AuthService.skipLogin) {
-      return Stream.value(_localLikes[targetId] == true ? 1 : 0);
-    }
+    if (AuthService.currentUser == null) return Stream.value(0);
     return _targetRef(targetId).snapshots().map((snap) {
       final count = snap.data()?['likeCount'];
       return count is num ? count.toInt() : 0;
@@ -34,11 +21,8 @@ class LikeService extends ChangeNotifier {
 
   Stream<bool> likedStream(String type, String id) {
     final targetId = this.targetId(type, id);
-    final uid = _uid;
-    if (uid.isEmpty) return Stream.value(_localLikes[targetId] == true);
-    if (AuthService.skipLogin) {
-      return Stream.value(_localLikes[targetId] == true);
-    }
+    final uid = AuthService.currentUser?.uid;
+    if (uid == null) return Stream.value(false);
     return _targetRef(targetId)
         .collection('likers')
         .doc(uid)
@@ -46,18 +30,10 @@ class LikeService extends ChangeNotifier {
         .map((snap) => snap.exists);
   }
 
-  bool isLiked(String type, String id) =>
-      _localLikes[targetId(type, id)] == true;
-
   Future<void> toggle(String type, String id) async {
     final key = targetId(type, id);
-    final uid = _uid;
-
-    if (uid.isEmpty || AuthService.skipLogin) {
-      _localLikes[key] = !(_localLikes[key] ?? false);
-      notifyListeners();
-      return;
-    }
+    final uid = AuthService.currentUser?.uid;
+    if (uid == null) throw const AuthFailure('Masuk untuk memberi like.');
 
     final target = _targetRef(key);
     final liker = target.collection('likers').doc(uid);
