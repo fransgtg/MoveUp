@@ -7,6 +7,7 @@ import 'package:moveup/services/activity_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
 import 'package:moveup/widgets/activity_media.dart';
+import 'package:moveup/widgets/like_button.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -28,16 +29,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.sm),
-            child: ScreenHeader(
-              subtitle: _filter?.label ?? "Semua aktivitas",
-              title: "RIWAYAT",
-              actions: [
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "RIWAYAT",
+                  style: AppTheme.display(30, letterSpacing: 1.5),
+                ),
                 PopupMenuButton<String>(
-                  icon: Icon(_filter == null ? Icons.filter_alt_outlined : Icons.filter_alt,
-                      color: _filter == null ? null : AppTheme.accent),
+                  icon: Icon(
+                    _filter == null
+                        ? Icons.filter_alt_outlined
+                        : Icons.filter_alt,
+                  ),
                   tooltip: "Filter olahraga",
-                  onSelected: (value) => setState(() => _filter = value == 'all' ? null : SportType.fromName(value)),
+                  onSelected: (value) => setState(
+                    () => _filter = value == 'all'
+                        ? null
+                        : SportType.fromName(value),
+                  ),
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'all', child: Text("Semua")),
                     for (final type in SportType.available)
@@ -51,8 +62,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: ListenableBuilder(
               listenable: store,
               builder: (context, _) {
-                final activities =
-                    store.activities.where((a) => _filter == null || a.type == _filter).toList();
+                final activities = store.activities
+                    .where((a) => _filter == null || a.type == _filter)
+                    .toList();
                 if (activities.isEmpty) {
                   // Kosong karena filter berbeda dengan kosong karena belum pernah mencatat
                   if (_filter != null) {
@@ -67,8 +79,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     message: "Aktivitas yang direkam atau dicatat manual akan muncul di sini.",
                     icon: Icons.history,
                     actionLabel: "Catat Manual",
-                    onAction: () =>
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AddActivityScreen())),
+                    onAction: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddActivityScreen(),
+                      ),
+                    ),
                   );
                 }
 
@@ -76,7 +92,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 final rows = <Object>[];
                 String? lastMonth;
                 for (final a in activities) {
-                  final month = "${monthNames[a.startTime.month - 1]} ${a.startTime.year}";
+                  final month =
+                      "${monthNames[a.startTime.month - 1]} ${a.startTime.year}";
                   if (month != lastMonth) rows.add(month);
                   lastMonth = month;
                   rows.add(a);
@@ -86,19 +103,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   itemCount: rows.length,
                   itemBuilder: (context, i) => switch (rows[i]) {
                     final String month => Padding(
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.lg, 0, AppSpacing.sm),
-                        child: Text(
-                          month.toUpperCase(),
-                          style: AppTheme.display(15, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 2),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.md,
+                      ),
+                      child: Text(
+                        month,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
+                    ),
                     final Activity a => _HistoryTile(
-                        activity: a,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => ActivityDetailScreen(activity: a)),
+                      activity: a,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ActivityDetailScreen(activity: a),
                         ),
                       ),
+                    ),
                     _ => const SizedBox.shrink(),
                   },
                 );
@@ -151,7 +175,10 @@ class _HistoryTile extends StatelessWidget {
                     ),
                     if (a.photos.isNotEmpty) ...[
                       Icon(Icons.photo_outlined, size: 14, color: muted),
-                      Text(" ${a.photos.length}", style: TextStyle(fontSize: 12, color: muted)),
+                      Text(
+                        " ${a.photos.length}",
+                        style: TextStyle(fontSize: 12, color: muted),
+                      ),
                     ],
                   ],
                 ),
@@ -160,7 +187,10 @@ class _HistoryTile extends StatelessWidget {
                   a.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -168,6 +198,7 @@ class _HistoryTile extends StatelessWidget {
                     _MiniStat("Jarak", "${formatKm(a.distanceMeters)} km"),
                     _MiniStat(paceLabel, paceValue),
                     _MiniStat("Waktu", formatDurationShort(a.movingSeconds)),
+                    LikeButton(type: 'activity', id: a.id, compact: true),
                   ],
                 ),
               ],
@@ -191,8 +222,19 @@ class _MiniStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.display(18)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.display(18),
+          ),
         ],
       ),
     );
