@@ -104,7 +104,9 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                   selected: _sport == null,
                   onSelected: (_) => _update(() => _sport = null),
                 ),
-                for (final type in SportType.values)
+                if (_sport == SportType.swim)
+                  const Chip(label: Text('Renang (kategori lama)')),
+                for (final type in SportType.available)
                   ChoiceChip(
                     avatar: Icon(type.icon, size: 18),
                     label: Text(type.label),

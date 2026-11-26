@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:moveup/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/services/profile_service.dart';
@@ -27,7 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final updated = _draft.toProfile(uid: widget.profile.uid, email: widget.profile.email);
       await ProfileService.instance.save(updated);
-      await FirebaseAuth.instance.currentUser?.updateDisplayName(updated.name);
+      await AuthService.currentUser?.updateDisplayName(updated.name);
       if (!mounted) return;
       messenger.success("Profil diperbarui");
       Navigator.pop(context);

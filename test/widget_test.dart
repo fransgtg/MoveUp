@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
-import 'package:moveup/services/auth_service.dart';
-import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/screens/login_screen.dart';
+import 'package:moveup/screens/splash_screen.dart';
 import 'package:moveup/widgets.dart';
 
 // Uji komponen bersama dan perilaku form (kualitas UI dan interaksi)
@@ -169,7 +169,8 @@ void main() {
       for (final label in ['Judul', 'Tanggal', 'Jam', 'Menit', 'Jarak', 'Catatan']) {
         expect(find.text(label), findsWidgets, reason: label);
       }
-      expect(find.byType(ChoiceChip), findsNWidgets(5));
+      expect(find.byType(ChoiceChip), findsNWidgets(4));
+      expect(find.text('Renang'), findsNothing);
     });
 
     testWidgets('simpan tanpa durasi menampilkan error spesifik', (tester) async {
@@ -188,12 +189,18 @@ void main() {
     });
   });
 
-  test('mode demo masuk tanpa Firebase dan keluar lagi', () async {
-    expect(AuthService.demoSignedIn.value, isFalse);
-    AuthService.enterDemo();
-    expect(AuthService.demoSignedIn.value, isTrue);
-    expect(ProfileService.instance.profile?.uid, AuthService.demoUid);
-    AuthService.demoSignedIn.value = false;
-    ProfileService.instance.clear();
+  testWidgets('Google adalah satu-satunya pilihan login', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+    expect(find.text('Masuk dengan Google'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Daftar'), findsNothing);
+  });
+
+  testWidgets('halaman awal membuka login Google', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
+    expect(find.text('Daftar'), findsNothing);
+    await tester.tap(find.text('Masuk'));
+    await tester.pumpAndSettle();
+    expect(find.text('Masuk dengan Google'), findsOneWidget);
   });
 }

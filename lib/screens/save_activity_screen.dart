@@ -136,7 +136,7 @@ class _SaveActivityScreenState extends State<SaveActivityScreen> {
             Wrap(
               spacing: 8,
               children: [
-                for (final type in SportType.values)
+                for (final type in SportType.available)
                   ChoiceChip(
                     avatar: Icon(type.icon, size: 18),
                     label: Text(type.label),

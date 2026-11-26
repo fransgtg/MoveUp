@@ -32,9 +32,9 @@ void main() {
   group('rute data simulasi', () {
     final activities = SampleData.activities(DateTime(2026, 10, 3, 12));
 
-    test('setiap aktivitas selain renang punya rute', () {
+    test('setiap aktivitas contoh punya rute', () {
       for (final a in activities) {
-        expect(a.hasRoute, a.type != SportType.swim, reason: a.title);
+        expect(a.hasRoute, isTrue, reason: a.title);
       }
     });
 
@@ -74,7 +74,8 @@ void main() {
   });
 
   testWidgets('thumbnail riwayat memakai ikon olahraga kalau tidak ada foto dan rute', (tester) async {
-    final a = Activity(id: '1', type: SportType.swim, title: 'Renang', startTime: start, movingSeconds: 1, distanceMeters: 1);
+    final saved = Activity(id: '1', type: SportType.swim, title: 'Renang', startTime: start, movingSeconds: 1, distanceMeters: 1);
+    final a = Activity.fromJson(saved.toJson());
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: ActivityThumbnail(activity: a))));
     expect(find.byIcon(SportType.swim.icon), findsOneWidget);
   });

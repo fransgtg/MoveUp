@@ -25,7 +25,7 @@ class ProfileDraft {
         weight: _trim(p.weightKg),
         height: _trim(p.heightCm),
         level: p.level,
-        sports: p.favoriteSports.toSet(),
+        sports: SportType.available.where(p.favoriteSports.contains).toSet(),
       );
 
   String name;
@@ -46,7 +46,7 @@ class ProfileDraft {
         weightKg: Validators.parseNumber(weight)!,
         heightCm: Validators.parseNumber(height)!,
         level: level,
-        favoriteSports: SportType.values.where(sports.contains).toList(),
+        favoriteSports: SportType.available.where(sports.contains).toList(),
       );
 
   static String _trim(double v) => v == v.roundToDouble() ? v.round().toString() : v.toString();
@@ -213,7 +213,7 @@ class PreferenceFields extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final type in SportType.values)
+                  for (final type in SportType.available)
                     FilterChip(
                       avatar: Icon(type.icon, size: 18),
                       label: Text(type.label),

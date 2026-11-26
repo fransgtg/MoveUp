@@ -242,7 +242,7 @@ class _TrainingCoverState extends State<_TrainingCover> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    for (final sport in SportType.values)
+                    for (final sport in SportType.available)
                       Padding(
                         padding: const EdgeInsets.only(right: 7),
                         child: ChoiceChip(
@@ -391,7 +391,7 @@ class _CoachCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(17),
               gradient: AppTheme.accentGradient,
             ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+            child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -408,9 +408,9 @@ class _CoachCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text("Siap bergerak lebih jauh?", style: AppTheme.display(20)),
+                Text("Chat dengan Coach", style: AppTheme.display(20)),
                 Text(
-                  "Dapatkan saran latihan untukmu",
+                  "Tanya soal latihan, progres, dan targetmu",
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurfaceVariant,

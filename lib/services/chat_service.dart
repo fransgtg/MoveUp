@@ -16,6 +16,12 @@ class ChatService {
   static Future<void> publishProfile(UserProfile profile) =>
       _profiles.doc(profile.uid).set(PublicProfile.fromProfile(profile).toMap());
 
+  static Stream<PublicProfile?> watchProfile(String uid) =>
+      _profiles.doc(uid).snapshots().map((snap) {
+        final data = snap.data();
+        return data == null ? null : PublicProfile.fromMap(uid, data);
+      });
+
   // Email harus persis sama; nama dicocokkan dari awal kata pertama
   static Future<List<PublicProfile>> searchUsers(String query, {required String excludeUid}) async {
     final q = query.trim().toLowerCase();

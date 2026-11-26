@@ -142,7 +142,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             selected: _sport == null,
             onSelected: (_) => setState(() => _sport = null),
           ),
-          for (final type in SportType.values) ...[
+          for (final type in SportType.available) ...[
             const SizedBox(width: 8),
             ChoiceChip(
               avatar: Icon(type.icon, size: 18),

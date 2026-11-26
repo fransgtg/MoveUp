@@ -19,8 +19,10 @@ enum SportType {
   ]),
   // Hiking lebih ditentukan tanjakan daripada kecepatan, jadi memakai satu nilai tetap
   hike('Hiking', Icons.hiking, 6.0, []),
-  // Renang gaya bebas intensitas sedang; kecepatan GPS di air tidak cukup akurat untuk tabel
+  // Dipertahankan untuk membaca data renang yang sudah tersimpan.
   swim('Renang', Icons.pool, 5.8, []);
+
+  static const available = [run, walk, ride, hike];
 
   const SportType(this.label, this.icon, this.defaultMet, this._metBySpeed);
 

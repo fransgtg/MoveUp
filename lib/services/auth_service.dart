@@ -1,9 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:moveup/models/activity.dart';
-import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/coach_service.dart';
 import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/services/reminder_store.dart';
@@ -20,41 +19,11 @@ class AuthFailure implements Exception {
 }
 
 class AuthService {
-  // Sementara: tombol Masuk langsung membuka aplikasi dengan akun demo lokal tanpa Firebase.
-  // Ubah ke false untuk memakai login Firebase lagi.
-  static const skipLogin = true;
-
-  static const demoUid = 'demo';
-
-  // true selama akun demo sedang dipakai; AuthGate mendengarkan nilai ini
-  static final demoSignedIn = ValueNotifier<bool>(false);
-
-  static void enterDemo() {
-    ProfileService.instance.setLocal(UserProfile(
-      uid: demoUid,
-      name: 'Pengguna Demo',
-      email: 'demo@moveup.app',
-      gender: Gender.male,
-      birthDate: DateTime(2000, 1, 1),
-      weightKg: ProfileService.defaultWeightKg,
-      heightCm: 170,
-      level: FitnessLevel.beginner,
-      favoriteSports: const [SportType.run],
-    ));
-    ActivityStore.instance.loadFor(demoUid);
-    GoalStore.instance.loadFor(demoUid);
-    ReminderStore.instance.loadFor(demoUid);
-    demoSignedIn.value = true;
-  }
-
   static FirebaseAuth get _auth => FirebaseAuth.instance;
 
   static User? get currentUser => _auth.currentUser;
 
   static Stream<User?> get userChanges => _auth.userChanges();
-
-  static Future<void> signIn(String email, String password) =>
-      _guard(() => _auth.signInWithEmailAndPassword(email: email.trim(), password: password));
 
   static bool _googleReady = false;
 
@@ -69,12 +38,22 @@ class AuthService {
   // Pengguna baru belum punya profil, jadi AuthGate akan membuka layar Lengkapi Profil.
   static Future<bool> signInWithGoogle() async {
     try {
-      await _initGoogle();
-      final account = await GoogleSignIn.instance.authenticate();
-      final idToken = account.authentication.idToken;
-      if (idToken == null) throw const AuthFailure('Google tidak mengirim token login. Coba lagi.');
-      await _guard(() => _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: idToken)));
+      if (kIsWeb) {
+        await _guard(() => _auth.signInWithPopup(GoogleAuthProvider()));
+      } else {
+        await _initGoogle();
+        if (!GoogleSignIn.instance.supportsAuthenticate()) {
+          throw const AuthFailure('Login Google belum tersedia pada perangkat ini.');
+        }
+        final account = await GoogleSignIn.instance.authenticate();
+        final idToken = account.authentication.idToken;
+        if (idToken == null) throw const AuthFailure('Google tidak mengirim token login. Coba lagi.');
+        await _guard(() => _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: idToken)));
+      }
       return true;
+    } on AuthFailure catch (e) {
+      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') return false;
+      rethrow;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) return false;
       final misconfigured = e.code == GoogleSignInExceptionCode.clientConfigurationError ||
@@ -90,33 +69,17 @@ class AuthService {
 
   // Akun Google tidak punya password MoveUp, jadi fitur ganti password tidak berlaku
   static bool get hasPasswordLogin =>
-      _auth.currentUser?.providerData.any((p) => p.providerId == EmailAuthProvider.PROVIDER_ID) ?? false;
-
-  // Membuat akun, menyimpan profil di Firestore, lalu mengirim email verifikasi
-  static Future<void> signUp({
-    required String email,
-    required String password,
-    required UserProfile Function(String uid) buildProfile,
-  }) {
-    return _guard(() async {
-      final cred = await _auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
-      final user = cred.user!;
-      final profile = buildProfile(user.uid);
-      await user.updateDisplayName(profile.name);
-      await ProfileService.instance.save(profile, isNew: true);
-      await user.sendEmailVerification();
-    });
-  }
-
-  static Future<void> sendPasswordReset(String email) =>
-      _guard(() => _auth.sendPasswordResetEmail(email: email.trim()));
+      currentUser?.providerData.any((p) => p.providerId == EmailAuthProvider.PROVIDER_ID) ?? false;
 
   static Future<void> resendVerification() => _guard(() => _auth.currentUser!.sendEmailVerification());
 
   // Mengembalikan true kalau email sudah diverifikasi setelah data pengguna dimuat ulang
   static Future<bool> reloadAndCheckVerified() async {
     await _guard(() => _auth.currentUser!.reload());
-    return _auth.currentUser?.emailVerified ?? false;
+    final user = _auth.currentUser;
+    if (user == null || !user.emailVerified) return false;
+    await _guard(() => user.getIdToken(true));
+    return true;
   }
 
   // Firebase mewajibkan login ulang sebelum ganti password
@@ -130,14 +93,20 @@ class AuthService {
   }
 
   static Future<void> signOut() async {
-    demoSignedIn.value = false;
     // Keluar juga dari Google supaya lain kali pemilih akun muncul lagi
-    if (_googleReady) await GoogleSignIn.instance.signOut();
     await _auth.signOut();
+    CoachService.instance.reset();
     ProfileService.instance.clear();
     ActivityStore.instance.clear();
     GoalStore.instance.clear();
     ReminderStore.instance.clear();
+    if (_googleReady) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } on GoogleSignInException catch (e) {
+        debugPrint('Gagal menutup pemilih akun Google: ${e.code.name}');
+      }
+    }
   }
 
   static Future<T> _guard<T>(Future<T> Function() action) async {
@@ -163,7 +132,7 @@ class AuthService {
         'requires-recent-login' => 'Demi keamanan, silakan masuk ulang lalu coba lagi.',
         'operation-not-allowed' => 'Metode login ini belum diaktifkan di Firebase Console.',
         'account-exists-with-different-credential' =>
-          'Email ini sudah terdaftar dengan metode login lain. Masuk dengan email dan password.',
+          'Email ini sudah terdaftar dengan metode lain. Akun lama perlu ditautkan ke Google.',
         _ => 'Terjadi kesalahan ($code). Coba lagi.',
       };
 }

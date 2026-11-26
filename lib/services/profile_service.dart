@@ -12,7 +12,7 @@ class ProfileService extends ChangeNotifier {
   static const defaultWeightKg = 65.0;
 
   UserProfile? _profile;
-
+  String? _activeUid;
   UserProfile? get profile => _profile;
 
   double get weightKg => _profile?.weightKg ?? defaultWeightKg;
@@ -22,7 +22,9 @@ class ProfileService extends ChangeNotifier {
 
   // Mengembalikan null kalau pengguna belum melengkapi profil
   Future<UserProfile?> load(String uid) async {
-    final snap = await _doc(uid).get();
+    _activeUid = uid;
+    final snap = await _doc(uid).get(const GetOptions(source: Source.server));
+    if (_activeUid != uid) return null;
     final data = snap.data();
     _profile = data == null ? null : UserProfile.fromMap(uid, data);
     if (_profile != null) _publish(_profile!);
@@ -30,17 +32,7 @@ class ProfileService extends ChangeNotifier {
     return _profile;
   }
 
-  // Profil yang hanya ada di memori (akun demo), tidak dibaca atau ditulis ke Firestore
-  bool _local = false;
-
-  void setLocal(UserProfile profile) {
-    _local = true;
-    _profile = profile;
-    notifyListeners();
-  }
-
   Future<void> save(UserProfile profile, {bool isNew = false}) async {
-    if (_local) return setLocal(profile);
     await _doc(profile.uid).set({
       ...profile.toMap(),
       if (isNew) 'createdAt': FieldValue.serverTimestamp(),
@@ -57,7 +49,7 @@ class ProfileService extends ChangeNotifier {
   }
 
   void clear() {
-    _local = false;
+    _activeUid = null;
     _profile = null;
     notifyListeners();
   }

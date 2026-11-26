@@ -70,7 +70,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             const SizedBox(height: 28),
             PreferenceFields(draft: _draft, onChanged: () => setState(() {})),
             const SizedBox(height: 16),
-            // Pengguna Google melewati langkah pertama pendaftaran, jadi persetujuan diminta di sini
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,

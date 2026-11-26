@@ -104,11 +104,12 @@ void main() {
       final reminders = SampleData.reminders();
 
       expect(activities.length, greaterThanOrEqualTo(20));
-      expect(SportType.values.length, greaterThanOrEqualTo(5));
+      expect(SportType.available, isNot(contains(SportType.swim)));
       expect(activities.map((a) => a.id).toSet().length, activities.length);
       expect(activities.every((a) => !a.startTime.isAfter(now)), isTrue);
 
-      final categoryIds = SportType.values.map((t) => t.id).toSet();
+      final categoryIds = SportType.available.map((t) => t.id).toSet();
+      expect(activities.every((a) => categoryIds.contains(a.type.id)), isTrue);
       final goalIds = goals.map((g) => g.id).toSet();
       expect(goals.every((g) => g.sportTypeId == null || categoryIds.contains(g.sportTypeId)), isTrue);
       expect(reminders.every((r) => categoryIds.contains(r.sportTypeId)), isTrue);

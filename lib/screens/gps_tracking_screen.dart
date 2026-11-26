@@ -255,7 +255,7 @@ class _GpsTrackingScreenState extends State<GpsTrackingScreen> {
               padding: EdgeInsets.all(16),
               child: Text("Pilih Jenis Olahraga", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
-            for (final type in SportType.values)
+            for (final type in SportType.available)
               ListTile(
                 leading: Icon(type.icon),
                 title: Text(type.label),

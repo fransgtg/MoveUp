@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moveup/models/chat.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/screens/chat_room_screen.dart';
+import 'package:moveup/screens/friends_screen.dart';
 import 'package:moveup/screens/user_search_screen.dart';
 import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/chat_service.dart';
@@ -18,7 +19,6 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Akun demo (AuthService.skipLogin) tidak login ke Firebase, jadi tidak bisa memakai chat
     final user = AuthService.currentUser;
     if (user == null) {
       return Scaffold(
@@ -37,6 +37,14 @@ class ChatListScreen extends StatelessWidget {
         title: const Text("Pesan"),
         actions: [
           IconButton(icon: const Icon(Icons.person_search), tooltip: "Cari pengguna", onPressed: () => _openSearch(context)),
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Teman',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FriendsScreen()),
+            ),
+          ),
         ],
       ),
       body: StreamBuilder<List<Chat>>(

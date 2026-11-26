@@ -75,13 +75,14 @@ class LocalCoach {
 
   // Olahraga utama: favorit pertama, atau yang paling sering dicatat
   SportType get _mainSport {
-    final favorites = profile?.favoriteSports ?? const [];
+    final favorites = profile?.favoriteSports.where(SportType.available.contains) ?? const <SportType>[];
     if (favorites.isNotEmpty) return favorites.first;
-    if (activities.isEmpty) return SportType.run;
     final counts = <SportType, int>{};
     for (final a in activities) {
+      if (!SportType.available.contains(a.type)) continue;
       counts[a.type] = (counts[a.type] ?? 0) + 1;
     }
+    if (counts.isEmpty) return SportType.run;
     return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 
@@ -171,7 +172,6 @@ class LocalCoach {
     final recent = _between(from, startOfWeek(now)).where((a) => a.type == sport);
     final minimum = switch (sport) {
       SportType.ride => sessions * 10.0,
-      SportType.swim => sessions * 0.5,
       _ => sessions * (_level == FitnessLevel.beginner ? 2.0 : 4.0),
     };
     final weekly = (_km(recent) / 4 * 1.1).clamp(minimum, 200.0);

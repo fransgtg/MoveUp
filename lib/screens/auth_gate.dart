@@ -21,6 +21,7 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  late final _users = AuthService.userChanges;
   Future<UserProfile?>? _profileFuture;
   String? _loadedUid;
 
@@ -28,13 +29,6 @@ class _AuthGateState extends State<AuthGate> {
     if (_loadedUid != user.uid || _profileFuture == null) {
       _loadedUid = user.uid;
       _profileFuture = ProfileService.instance.load(user.uid);
-      // Ditunda ke microtask karena memuat data memberi notifikasi ke listener, tidak boleh saat build
-      final uid = user.uid;
-      Future.microtask(() {
-        ActivityStore.instance.loadFor(uid);
-        GoalStore.instance.loadFor(uid);
-        ReminderStore.instance.loadFor(uid);
-      });
     }
     return _profileFuture!;
   }
@@ -43,15 +37,8 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: AuthService.demoSignedIn,
-      builder: (context, demo, _) => demo ? const MainScreen() : _firebaseGate(context),
-    );
-  }
-
-  Widget _firebaseGate(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: AuthService.userChanges,
+      stream: _users,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const _Loading();
         final user = snapshot.data;
@@ -72,14 +59,36 @@ class _AuthGateState extends State<AuthGate> {
               if (profileSnap.connectionState != ConnectionState.done) return const _Loading();
               if (profileSnap.hasError) return _LoadError(onRetry: _retry);
               // Profil dari service lebih baru kalau baru saja disimpan lewat Lengkapi Profil
-              final profile = ProfileService.instance.profile ?? profileSnap.data;
-              return profile == null ? const CompleteProfileScreen() : const MainScreen();
+              final profile = ProfileService.instance.profile;
+              if (profile?.uid != user.uid) return CompleteProfileScreen(key: ValueKey(user.uid));
+              return _RegisteredHome(key: ValueKey(user.uid), uid: user.uid);
             },
           ),
         );
       },
     );
   }
+}
+
+class _RegisteredHome extends StatefulWidget {
+  const _RegisteredHome({super.key, required this.uid});
+  final String uid;
+
+  @override
+  State<_RegisteredHome> createState() => _RegisteredHomeState();
+}
+
+class _RegisteredHomeState extends State<_RegisteredHome> {
+  @override
+  void initState() {
+    super.initState();
+    ActivityStore.instance.loadFor(widget.uid);
+    GoalStore.instance.loadFor(widget.uid);
+    ReminderStore.instance.loadFor(widget.uid);
+  }
+
+  @override
+  Widget build(BuildContext context) => const MainScreen();
 }
 
 class _Loading extends StatelessWidget {

@@ -40,7 +40,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   onSelected: (value) => setState(() => _filter = value == 'all' ? null : SportType.fromName(value)),
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'all', child: Text("Semua")),
-                    for (final type in SportType.values)
+                    for (final type in SportType.available)
                       PopupMenuItem(value: type.name, child: Text(type.label)),
                   ],
                 ),

@@ -129,7 +129,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  for (final type in SportType.values)
+                  for (final type in SportType.available)
                     ChoiceChip(
                       avatar: Icon(type.icon, size: 18),
                       label: Text(type.label),

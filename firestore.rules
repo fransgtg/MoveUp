@@ -10,15 +10,28 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{uid} {
-      allow read: if request.auth != null;
-      allow create, update: if isOwner(uid) && validPublicProfile(request.resource.data);
+      allow read: if isRegistered();
+      allow create, update: if isRegistered() && isOwner(uid) && validPublicProfile(request.resource.data);
       allow delete: if isOwner(uid);
+    }
+
+    match /friendships/{pairId} {
+      // Anggota dapat membaca pasangan yang belum ada sebelum membuat permintaan.
+      allow get: if isRegistered() && request.auth.uid in pairId.split(':');
+      allow list: if isRegistered() && request.auth.uid in resource.data.members;
+      allow create: if isRegistered() && validFriendRequest(pairId, request.resource.data);
+      allow update: if isFriendshipMember()
+        && resource.data.senderId != request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if isFriendshipMember() && resource.data.status == 'pending';
     }
 
     // ID percakapan = dua uid yang diurutkan lalu digabung dengan '_'
     match /chats/{chatId} {
       allow get: if isMember(chatId);
-      allow list: if request.auth != null && request.auth.uid in resource.data.members;
+      allow list: if isRegistered() && request.auth.uid in resource.data.members;
       allow create, update: if isMember(chatId) && validChat(chatId, request.resource.data);
 
       match /messages/{messageId} {
@@ -29,7 +42,27 @@ service cloud.firestore {
     }
 
     function isMember(chatId) {
-      return request.auth != null && request.auth.uid in chatId.split('_');
+      return isRegistered() && request.auth.uid in chatId.split('_');
+    }
+
+    function isRegistered() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isFriendshipMember() {
+      return isRegistered() && request.auth.uid in resource.data.members;
+    }
+
+    function validFriendRequest(pairId, data) {
+      let members = pairId.split(':');
+      return data.keys().hasOnly(['members', 'senderId', 'status', 'createdAt'])
+        && members.size() == 2 && members[0] < members[1]
+        && data.members == members
+        && data.senderId == request.auth.uid && request.auth.uid in members
+        && data.status == 'pending' && data.createdAt == request.time
+        && exists(/databases/$(database)/documents/publicProfiles/$(members[0]))
+        && exists(/databases/$(database)/documents/publicProfiles/$(members[1]));
     }
 
     function validPublicProfile(data) {

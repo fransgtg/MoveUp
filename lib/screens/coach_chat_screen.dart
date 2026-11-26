@@ -13,46 +13,33 @@ class CoachChatScreen extends StatefulWidget {
 
 class _CoachChatScreenState extends State<CoachChatScreen> {
   static const _suggestions = [
-    "Bagaimana progres latihanku minggu ini?",
-    "Buatkan rencana latihan untuk minggu depan",
-    "Tips meningkatkan pace lari",
-    "Apa yang sebaiknya kumakan sebelum latihan?",
+    ('Progres minggu ini', 'Bagaimana progres latihanku minggu ini?'),
+    ('Rencana latihan', 'Buatkan rencana latihan untuk minggu depan'),
+    ('Tips pace lari', 'Bagaimana cara meningkatkan pace lari?'),
+    ('Makan sebelum latihan', 'Apa yang sebaiknya aku makan sebelum latihan?'),
   ];
 
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _coach = CoachService.instance;
-
-  @override
-  void initState() {
-    super.initState();
-    _coach.addListener(_onCoachChanged);
-  }
+  final _greeting = ChatMessage(
+    ChatRole.coach,
+    'Halo! Aku MoveUp Coach. Mau cek progres, '
+    'menyiapkan latihan berikutnya, atau membahas targetmu?',
+  );
 
   @override
   void dispose() {
-    _coach.removeListener(_onCoachChanged);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _onCoachChanged() {
-    final failed = _coach.takeFailedQuestion();
-    if (failed != null && _input.text.isEmpty) _input.text = failed;
-    _scrollToEnd();
-  }
-
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-    });
-  }
-
   void _send([String? text]) {
-    final message = text ?? _input.text;
-    if (message.trim().isEmpty || _coach.busy) return;
-    _input.clear();
+    final message = (text ?? _input.text).trim();
+    if (message.isEmpty || _coach.busy) return;
+    if (_input.text.trim() == message) _input.clear();
+    if (_scroll.hasClients) _scroll.jumpTo(0);
     _coach.send(message);
   }
 
@@ -65,20 +52,44 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
       icon: Icons.refresh,
       destructive: false,
     );
-    if (ok) _coach.reset();
+    if (ok && mounted) {
+      _input.clear();
+      _coach.reset();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("MOVEUP COACH"),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            const _CoachAvatar(),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('MoveUp Coach', overflow: TextOverflow.ellipsis),
+                  Text(
+                    'Mode offline',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           ListenableBuilder(
             listenable: _coach,
             builder: (context, _) => IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: "Percakapan baru",
+              icon: const Icon(Icons.add_comment_outlined),
+              tooltip: 'Percakapan baru',
               onPressed: _coach.messages.isEmpty ? null : _confirmReset,
             ),
           ),
@@ -88,8 +99,11 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
         listenable: _coach,
         builder: (context, _) => Column(
           children: [
-            Expanded(child: _coach.messages.isEmpty ? _buildWelcome() : _buildMessages()),
-            if (_coach.error != null) _ErrorLine(message: _coach.error!),
+            Expanded(
+              child: _coach.messages.isEmpty
+                  ? _buildWelcome()
+                  : _buildMessages(),
+            ),
             _buildComposer(),
           ],
         ),
@@ -98,54 +112,19 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
   }
 
   Widget _buildWelcome() {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return ListView(
       padding: AppSpacing.page,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
-        const SizedBox(height: AppSpacing.xl),
-        Center(
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppTheme.accentGradient,
-              boxShadow: AppTheme.softShadow(AppTheme.accent),
-            ),
-            child: const Icon(Icons.sports_gymnastics, size: 44, color: Colors.white),
-          ),
+        _Bubble(message: _greeting),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          children: [
+            for (final (label, question) in _suggestions)
+              ActionChip(label: Text(label), onPressed: () => _send(question)),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        Text("Halo! Aku Coach-mu.", textAlign: TextAlign.center, style: AppTheme.display(28)),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          "Tanya apa saja soal latihan, pemulihan, atau target. Aku membaca data aktivitasmu untuk memberi saran yang pas.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: muted, height: 1.4),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Center(
-          child: Chip(
-            avatar: Icon(CoachService.isOnline ? Icons.cloud_outlined : Icons.offline_bolt_outlined, size: 18),
-            label: Text(CoachService.isOnline ? "AI online (Claude)" : "Mode offline"),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        const SectionLabel("Coba tanyakan"),
-        for (final s in _suggestions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
-              onTap: () => _send(s),
-              child: Row(
-                children: [
-                  Expanded(child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600))),
-                  const Icon(Icons.north_east, size: 18, color: AppTheme.accent),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -154,9 +133,20 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
     final messages = _coach.messages;
     return ListView.builder(
       controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-      itemCount: messages.length,
-      itemBuilder: (context, i) => _Bubble(message: messages[i]),
+      reverse: true,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      itemCount: messages.length + 1,
+      itemBuilder: (context, i) {
+        if (i == messages.length) return _Bubble(message: _greeting);
+        final message = messages[messages.length - i - 1];
+        return _Bubble(key: ObjectKey(message), message: message);
+      },
     );
   }
 
@@ -170,7 +160,12 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.sm,
+            AppSpacing.sm,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -184,26 +179,25 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _send(),
                   decoration: const InputDecoration(
-                    hintText: "Tanya Coach...",
+                    hintText: "Tulis pesan ke Coach",
                     counterText: "",
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              IconButton.filled(
-                tooltip: "Kirim",
-                onPressed: _coach.busy ? null : _send,
-                icon: _coach.busy
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.arrow_upward),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(48, 48),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _input,
+                builder: (context, value, _) => IconButton.filled(
+                  tooltip: 'Kirim pesan',
+                  onPressed: _coach.busy || value.text.trim().isEmpty
+                      ? null
+                      : _send,
+                  icon: const Icon(Icons.arrow_upward),
+                  style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
                 ),
               ),
             ],
@@ -214,8 +208,23 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
   }
 }
 
+class _CoachAvatar extends StatelessWidget {
+  const _CoachAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return CircleAvatar(
+      radius: 15,
+      backgroundColor: scheme.primary,
+      foregroundColor: scheme.onPrimary,
+      child: const Icon(Icons.smart_toy_outlined, size: 17),
+    );
+  }
+}
+
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message});
+  const _Bubble({super.key, required this.message});
 
   final ChatMessage message;
 
@@ -231,7 +240,9 @@ class _Bubble extends StatelessWidget {
     );
 
     final bubble = Container(
-      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: mine ? null : scheme.surface,
@@ -242,22 +253,24 @@ class _Bubble extends StatelessWidget {
       child: message.text.isEmpty
           ? const _TypingDots()
           : SelectableText.rich(
-              _formatted(message.text, TextStyle(color: mine ? Colors.white : scheme.onSurface, height: 1.4)),
+              mine ? TextSpan(text: message.text) : _formatted(message.text),
+              style: TextStyle(
+                color: mine ? Colors.white : scheme.onSurface,
+                height: 1.4,
+              ),
             ),
     );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
-        mainAxisAlignment: mine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: mine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!mine) ...[
-            const CircleAvatar(
-              radius: 14,
-              backgroundColor: AppTheme.accent,
-              child: Icon(Icons.sports_gymnastics, size: 16, color: Colors.white),
-            ),
+            const _CoachAvatar(),
             const SizedBox(width: AppSpacing.sm),
           ],
           Flexible(child: bubble),
@@ -267,13 +280,17 @@ class _Bubble extends StatelessWidget {
   }
 
   // Mendukung **tebal** dari jawaban Coach; teks lain ditampilkan apa adanya
-  static TextSpan _formatted(String text, TextStyle style) {
+  static TextSpan _formatted(String text) {
     final parts = text.split('**');
     return TextSpan(
-      style: style,
       children: [
         for (var i = 0; i < parts.length; i++)
-          TextSpan(text: parts[i], style: i.isOdd ? const TextStyle(fontWeight: FontWeight.w700) : null),
+          TextSpan(
+            text: parts[i],
+            style: i.isOdd
+                ? const TextStyle(fontWeight: FontWeight.w700)
+                : null,
+          ),
       ],
     );
   }
@@ -287,8 +304,12 @@ class _TypingDots extends StatefulWidget {
   State<_TypingDots> createState() => _TypingDotsState();
 }
 
-class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
 
   @override
   void dispose() {
@@ -317,29 +338,6 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
               ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ErrorLine extends StatelessWidget {
-  const _ErrorLine({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final error = Theme.of(context).colorScheme.error;
-    return Container(
-      width: double.infinity,
-      color: error.withValues(alpha: 0.1),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, size: 18, color: error),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(message, style: TextStyle(color: error, fontSize: 13))),
-        ],
       ),
     );
   }

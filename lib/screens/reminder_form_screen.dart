@@ -24,7 +24,10 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final Reminder? _initial = widget.reminder;
   late final _titleCtrl = TextEditingController(text: _initial?.title ?? widget.initialGoal?.title);
-  late SportType _sport = _initial?.sportType ?? widget.initialGoal?.sportType ?? SportType.run;
+  late SportType _sport = _initial?.sportType ??
+      (widget.initialGoal?.sportType == SportType.swim
+          ? SportType.run
+          : widget.initialGoal?.sportType ?? SportType.run);
   late final Set<int> _days = {...?_initial?.days};
   late TimeOfDay _time = _initial?.time ?? const TimeOfDay(hour: 6, minute: 0);
   late bool _enabled = _initial?.enabled ?? true;
@@ -119,7 +122,9 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: [
-                for (final type in SportType.values)
+                if (_sport == SportType.swim)
+                  const Chip(label: Text('Renang (kategori lama)')),
+                for (final type in SportType.available)
                   ChoiceChip(
                     avatar: Icon(type.icon, size: 18),
                     label: Text(type.label),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moveup/screens/login_screen.dart';
-import 'package:moveup/screens/sign_up_screen.dart';
 import 'package:moveup/theme.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -72,43 +71,22 @@ class SplashScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppTheme.accentDeep,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size(0, 52),
-                                ),
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const SignUpScreen(),
-                                  ),
-                                ),
-                                child: const Text('Daftar'),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.accentDeep,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 52),
+                            ),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white54),
-                                  shape: const StadiumBorder(),
-                                  minimumSize: const Size(0, 52),
-                                ),
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LoginScreen(),
-                                  ),
-                                ),
-                                child: const Text('Masuk'),
-                              ),
-                            ),
-                          ],
+                            child: const Text('Masuk'),
+                          ),
                         ),
                       ],
                     ),
