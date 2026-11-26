@@ -5,10 +5,15 @@ import 'package:moveup/services/chat_service.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/like_button.dart';
 
 // Ruang chat dua orang, diperbarui langsung dari Firestore
 class ChatRoomScreen extends StatefulWidget {
-  const ChatRoomScreen({super.key, required this.otherUid, required this.otherName});
+  const ChatRoomScreen({
+    super.key,
+    required this.otherUid,
+    required this.otherName,
+  });
 
   final String otherUid;
   final String otherName;
@@ -20,7 +25,9 @@ class ChatRoomScreen extends StatefulWidget {
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final _controller = TextEditingController();
   late final String _me = AuthService.currentUser!.uid;
-  late final Stream<List<ChatMessage>> _messages = ChatService.messagesOf(Chat.idFor(_me, widget.otherUid));
+  late final Stream<List<ChatMessage>> _messages = ChatService.messagesOf(
+    Chat.idFor(_me, widget.otherUid),
+  );
 
   @override
   void dispose() {
@@ -35,7 +42,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     try {
       await ChatService.send(
         fromUid: _me,
-        fromName: ProfileService.instance.profile?.name ?? AuthService.currentUser!.displayName ?? 'Pengguna',
+        fromName:
+            ProfileService.instance.profile?.name ??
+            AuthService.currentUser!.displayName ??
+            'Pengguna',
         toUid: widget.otherUid,
         toName: widget.otherName,
         text: text,
@@ -44,7 +54,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       if (!mounted) return;
       // Kembalikan teks supaya tidak perlu diketik ulang
       if (_controller.text.isEmpty) _controller.text = text;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pesan gagal dikirim. Coba lagi.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Pesan gagal dikirim. Coba lagi.")),
+      );
     }
   }
 
@@ -59,26 +71,46 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               stream: _messages,
               builder: (context, snap) {
                 if (snap.hasError) {
-                  return const EmptyStateWidget(message: "Gagal memuat pesan.", icon: Icons.cloud_off);
+                  return const EmptyStateWidget(
+                    message: "Gagal memuat pesan.",
+                    icon: Icons.cloud_off,
+                  );
                 }
-                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 final messages = snap.data!;
                 if (messages.isEmpty) {
-                  return EmptyStateWidget(message: "Sapa ${widget.otherName}\nuntuk memulai percakapan.", icon: Icons.waving_hand_outlined);
+                  return EmptyStateWidget(
+                    message:
+                        "Sapa ${widget.otherName}\nuntuk memulai percakapan.",
+                    icon: Icons.waving_hand_outlined,
+                  );
                 }
                 // Daftar dibalik: pesan terbaru di indeks 0, tampil paling bawah
                 return ListView.builder(
                   reverse: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   itemCount: messages.length,
                   itemBuilder: (context, i) {
                     final msg = messages[i];
-                    final older = i + 1 < messages.length ? messages[i + 1] : null;
-                    final newDay = older == null || !_sameDay(older.createdAt, msg.createdAt);
+                    final older = i + 1 < messages.length
+                        ? messages[i + 1]
+                        : null;
+                    final newDay =
+                        older == null ||
+                        !_sameDay(older.createdAt, msg.createdAt);
                     return Column(
                       children: [
                         if (newDay) _DayLabel(date: msg.createdAt),
-                        _Bubble(message: msg, mine: msg.senderId == _me),
+                        _Bubble(
+                          message: msg,
+                          mine: msg.senderId == _me,
+                          chatId: Chat.idFor(_me, widget.otherUid),
+                        ),
                       ],
                     );
                   },
@@ -110,7 +142,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 decoration: const InputDecoration(
                   hintText: "Tulis pesan",
                   counterText: '',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -129,7 +164,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 class _DayLabel extends StatelessWidget {
@@ -143,17 +179,26 @@ class _DayLabel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         formatChatDay(date),
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine});
+  const _Bubble({
+    required this.message,
+    required this.mine,
+    required this.chatId,
+  });
 
   final ChatMessage message;
   final bool mine;
+  final String chatId;
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +208,9 @@ class _Bubble extends StatelessWidget {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.75,
+        ),
         margin: const EdgeInsets.symmetric(vertical: 3),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
         decoration: BoxDecoration(
@@ -185,12 +232,27 @@ class _Bubble extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(formatTime(message.createdAt), style: TextStyle(color: fg.withValues(alpha: 0.7), fontSize: 11)),
+                Text(
+                  formatTime(message.createdAt),
+                  style: TextStyle(
+                    color: fg.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                ),
                 if (mine) ...[
                   const SizedBox(width: 4),
-                  Icon(message.pending ? Icons.schedule : Icons.done, size: 12, color: fg.withValues(alpha: 0.7)),
+                  Icon(
+                    message.pending ? Icons.schedule : Icons.done,
+                    size: 12,
+                    color: fg.withValues(alpha: 0.7),
+                  ),
                 ],
               ],
+            ),
+            LikeButton(
+              type: 'chatMessage',
+              id: '${chatId}_${message.id}',
+              compact: true,
             ),
           ],
         ),

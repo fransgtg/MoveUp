@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/models/goal.dart';
-import 'package:moveup/theme.dart';
-import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/like_button.dart';
 
 // Kartu ringkas satu target beserta progres periode berjalan
 class GoalProgressCard extends StatelessWidget {
@@ -33,7 +32,10 @@ class GoalProgressCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       goal.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -61,6 +63,7 @@ class GoalProgressCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
+                  LikeButton(type: 'goal', id: goal.id, compact: true),
                   Text(
                     "${(progress.fraction * 100).round()}%",
                     style: AppTheme.display(18, color: done ? AppTheme.success : scheme.primary),
@@ -82,10 +85,17 @@ class GoalDoneBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: AppTheme.success, borderRadius: BorderRadius.circular(12)),
-      child: const Text(
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
         "Tercapai",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+        style: TextStyle(
+          color: scheme.onPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
