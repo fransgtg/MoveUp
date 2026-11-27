@@ -10,6 +10,7 @@ import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/services/reminder_store.dart';
+import 'package:moveup/widgets/social_notification_listener.dart';
 
 // Halaman dasar aplikasi: memilih layar sesuai status login
 // belum masuk → Splash, belum verifikasi → Verifikasi Email, belum ada profil → Lengkapi Profil, selain itu → Beranda
@@ -79,16 +80,24 @@ class _RegisteredHome extends StatefulWidget {
 }
 
 class _RegisteredHomeState extends State<_RegisteredHome> {
+  late final Future<void> _activities;
+
   @override
   void initState() {
     super.initState();
-    ActivityStore.instance.loadFor(widget.uid);
+    _activities = ActivityStore.instance.loadFor(widget.uid);
     GoalStore.instance.loadFor(widget.uid);
     ReminderStore.instance.loadFor(widget.uid);
   }
 
   @override
-  Widget build(BuildContext context) => const MainScreen();
+  Widget build(BuildContext context) => FutureBuilder<void>(
+    future: _activities,
+    builder: (context, snapshot) =>
+        snapshot.connectionState == ConnectionState.done
+            ? SocialNotificationListener(uid: widget.uid, child: const MainScreen())
+            : const _Loading(),
+  );
 }
 
 class _Loading extends StatelessWidget {

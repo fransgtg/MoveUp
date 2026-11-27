@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:moveup/services/social_notifications.dart';
 
 // Notifikasi rekaman yang tampil di status bar dan layar kunci (Android).
 // Notifikasi ini sekaligus foreground service bertipe lokasi, jadi GPS tetap jalan saat layar mati.
@@ -15,9 +16,7 @@ class RecordingNotification {
 
   static Future<void> _init() async {
     if (_initialized) return;
-    await _plugin.initialize(
-      settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_run')),
-    );
+    await SocialNotifications.initializePlugin();
     _initialized = true;
   }
 

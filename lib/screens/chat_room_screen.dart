@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:moveup/models/chat.dart';
+import 'package:moveup/screens/activity_community_screen.dart';
 import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/chat_service.dart';
 import 'package:moveup/services/profile_service.dart';
@@ -28,9 +32,46 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   late final Stream<List<ChatMessage>> _messages = ChatService.messagesOf(
     Chat.idFor(_me, widget.otherUid),
   );
+  late final AppLifecycleListener _lifecycle;
+  DateTime? _readThrough;
+  bool _marking = false;
+  Timer? _retry;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: () => setState(() {}));
+  }
+
+  void _recordVisibleMessages(List<ChatMessage> messages) {
+    final latest = messages.where((m) => !m.pending).firstOrNull?.createdAt;
+    if (latest == null || _marking || _retry != null ||
+        (_readThrough != null && !latest.isAfter(_readThrough!))) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _marking || ModalRoute.of(context)?.isCurrent != true ||
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+          AuthService.currentUser?.uid != _me) return;
+      _marking = true;
+      try {
+        await ChatService.markRead(_me, Chat.idFor(_me, widget.otherUid), Timestamp.fromDate(latest));
+        if (mounted) setState(() => _readThrough = latest);
+      } catch (e) {
+        debugPrint('Gagal menyimpan status baca: $e');
+        if (mounted) {
+          _retry = Timer(const Duration(seconds: 15), () {
+            if (mounted) setState(() => _retry = null);
+          });
+        }
+      } finally {
+        _marking = false;
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
+    _retry?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -62,6 +103,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = ModalRoute.isCurrentOf(context) == true;
     return Scaffold(
       appBar: AppBar(title: Text(widget.otherName)),
       body: Column(
@@ -80,6 +122,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final messages = snap.data!;
+                if (visible) _recordVisibleMessages(messages);
                 if (messages.isEmpty) {
                   return EmptyStateWidget(
                     message:
@@ -227,7 +270,20 @@ class _Bubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(message.text, style: TextStyle(color: fg, fontSize: 15)),
+            if (message.activityPostId case final postId?)
+              TextButton.icon(
+                style: TextButton.styleFrom(foregroundColor: fg),
+                icon: const Icon(Icons.directions_run),
+                label: Text(message.text),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => ActivityPostScreen(postId: postId),
+                  ),
+                ),
+              )
+            else
+              Text(message.text, style: TextStyle(color: fg, fontSize: 15)),
             const SizedBox(height: 2),
             Row(
               mainAxisSize: MainAxisSize.min,

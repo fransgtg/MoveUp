@@ -62,14 +62,14 @@ void main() {
     });
   });
 
-  test('aktivitas contoh lama dilengkapi rute, buatan pengguna tidak disentuh', () {
+  test('aktivitas contoh lama dibuang dan catatan manual tetap utuh', () {
     final old = [
       Activity(id: 'act-01', type: SportType.run, title: 'Contoh', startTime: start, movingSeconds: 1800, distanceMeters: 5000),
       Activity(id: '1759300000000', type: SportType.run, title: 'Milik pengguna', startTime: start, movingSeconds: 600, distanceMeters: 2000),
     ];
     final upgraded = ActivityStore.instance.upgrade(old)!;
-    expect(upgraded[0].hasRoute, isTrue);
-    expect(upgraded[1].hasRoute, isFalse);
+    expect(upgraded, [old[1]]);
+    expect(upgraded.single.hasRoute, isFalse);
     expect(ActivityStore.instance.upgrade(upgraded), isNull);
   });
 

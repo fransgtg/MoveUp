@@ -5,13 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 // Daftar data milik satu akun yang disimpan sebagai file JSON di penyimpanan aplikasi.
-// Akun yang baru pertama kali dibuka langsung diisi data simulasi dari [seed].
+// Akun baru dimulai dengan isi awal yang ditentukan oleh [seed].
 abstract class JsonListStore<T> extends ChangeNotifier {
   JsonListStore(this._fileName);
 
   final String _fileName;
   final List<T> _items = [];
   String? _uid;
+  int _loadVersion = 0;
+  Future<void> _pendingSave = Future.value();
 
   List<T> get items => List.unmodifiable(_items);
 
@@ -22,9 +24,6 @@ abstract class JsonListStore<T> extends ChangeNotifier {
 
   // Urutan tampilan; null berarti mengikuti urutan penambahan
   Comparator<T>? get order => null;
-
-  // Dipanggil sebelum file dibaca, misalnya untuk memindahkan file versi lama
-  Future<void> beforeLoad(File file) async {}
 
   // Melengkapi data versi lama setelah dibaca; kembalikan null kalau tidak ada yang berubah
   List<T>? upgrade(List<T> loaded) => null;
@@ -43,12 +42,13 @@ abstract class JsonListStore<T> extends ChangeNotifier {
 
   Future<void> loadFor(String uid) async {
     if (_uid == uid) return;
+    final version = ++_loadVersion;
     _uid = uid;
     _items.clear();
     notifyListeners();
     try {
+      await _pendingSave;
       final file = await fileFor(uid);
-      await beforeLoad(file);
       final exists = await file.exists();
       final read = exists
           ? (jsonDecode(await file.readAsString()) as List<dynamic>)
@@ -58,19 +58,21 @@ abstract class JsonListStore<T> extends ChangeNotifier {
       final upgraded = exists ? upgrade(read) : null;
       final loaded = upgraded ?? read;
       // Pengguna bisa saja keluar selagi file dibaca
-      if (_uid != uid) return;
+      if (version != _loadVersion) return;
       _items
         ..clear()
         ..addAll(loaded);
       _sort();
+      final save = !exists || upgraded != null ? _save() : null;
       notifyListeners();
-      if (!exists || upgraded != null) await _save();
+      await save;
     } catch (e) {
       debugPrint('Gagal memuat $_fileName: $e');
     }
   }
 
   void clear() {
+    _loadVersion++;
     _uid = null;
     _items.clear();
     notifyListeners();
@@ -104,8 +106,9 @@ abstract class JsonListStore<T> extends ChangeNotifier {
 
   Future<void> _changed() async {
     _sort();
+    final save = _save();
     notifyListeners();
-    await _save();
+    await save;
   }
 
   void _sort() {
@@ -113,13 +116,18 @@ abstract class JsonListStore<T> extends ChangeNotifier {
     if (compare != null) _items.sort(compare);
   }
 
-  Future<void> _save() async {
+  Future<void> _save() {
     final uid = _uid;
-    if (uid == null) return;
-    final file = await fileFor(uid);
-    // Tulis ke file sementara dulu supaya data tidak rusak kalau aplikasi mati di tengah penulisan
-    final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(jsonEncode(_items.map(encode).toList()));
-    await tmp.rename(file.path);
+    if (uid == null) return Future.value();
+    final contents = jsonEncode(_items.map(encode).toList());
+    final save = _pendingSave.then((_) async {
+      final file = await fileFor(uid);
+      // Tulis ke file sementara sebelum mengganti data akun.
+      final tmp = File('${file.path}.tmp');
+      await tmp.writeAsString(contents);
+      await tmp.rename(file.path);
+    });
+    _pendingSave = save.catchError((Object _) {});
+    return save;
   }
 }

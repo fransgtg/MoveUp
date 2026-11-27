@@ -19,6 +19,60 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, delete: if isOwner(uid);
       allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+
+      match /chatReads/{chatId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && isMember(chatId)
+          && request.resource.data.keys().hasOnly(['through'])
+          && request.resource.data.through is timestamp
+          && request.resource.data.through <= request.time
+          && (resource == null || request.resource.data.through >= resource.data.through);
+      }
+    }
+
+    match /activityPosts/{postId} {
+      allow read: if isRegistered() && resource.data.published == true;
+      allow create: if isRegistered() && validPost(postId, request.resource.data);
+      allow update: if isRegistered() && isOwner(resource.data.ownerId)
+        && (validPost(postId, request.resource.data)
+          || (request.resource.data.published == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['published'])));
+
+      match /comments/{commentId} {
+        allow read: if isRegistered() && publishedPost(postId);
+        allow create: if isRegistered() && publishedPost(postId)
+          && validComment(request.resource.data);
+      }
+    }
+
+    function publishedPost(postId) {
+      return get(/databases/$(database)/documents/activityPosts/$(postId)).data.published == true;
+    }
+
+    function currentAuthor() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name;
+    }
+
+    function validPost(postId, data) {
+      return data.keys().hasOnly(['ownerId', 'author', 'title', 'description', 'sport',
+                                  'startTime', 'movingSeconds', 'distanceMeters', 'published', 'postedAt'])
+        && postId.split(':').size() == 2 && postId.split(':')[0] == request.auth.uid
+        && isOwner(data.ownerId) && data.author == currentAuthor()
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 240
+        && data.description is string && data.description.size() <= 1200
+        && data.sport in ['run', 'walk', 'ride', 'hike', 'swim']
+        && data.startTime is timestamp
+        && data.movingSeconds is int && data.movingSeconds >= 0
+        && data.distanceMeters is number && data.distanceMeters >= 0 && data.distanceMeters <= 100000000
+        && data.published == true && data.postedAt == request.time;
+    }
+
+    function validComment(data) {
+      return data.keys().hasOnly(['senderId', 'author', 'text', 'createdAt'])
+        && data.senderId == request.auth.uid && data.author == currentAuthor()
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 500
+        && data.text.matches('(?s).*[^[:space:]].*')
+        && data.createdAt == request.time;
     }
 
     match /publicProfiles/{uid} {
@@ -97,9 +151,12 @@ service cloud.firestore {
     }
 
     function validMessage(data) {
-      return data.keys().hasOnly(['senderId', 'text', 'createdAt'])
+      return data.keys().hasOnly(['senderId', 'text', 'createdAt', 'activityPostId'])
         && data.senderId == request.auth.uid
         && validText(data.text)
+        && (!('activityPostId' in data)
+          || (data.activityPostId is string && data.activityPostId.matches('[^/]+:[^/]+')
+            && publishedPost(data.activityPostId)))
         && data.createdAt == request.time;
     }
 

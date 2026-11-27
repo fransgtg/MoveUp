@@ -91,11 +91,13 @@ class ChatMessage {
     required this.text,
     required this.createdAt,
     required this.pending,
+    this.activityPostId,
   });
 
   final String id;
   final String senderId;
   final String text;
+  final String? activityPostId;
   final DateTime createdAt;
 
   // Belum sampai ke server; createdAt masih perkiraan waktu perangkat
@@ -107,6 +109,7 @@ class ChatMessage {
       id: doc.id,
       senderId: map['senderId'] as String,
       text: map['text'] as String,
+      activityPostId: map['activityPostId'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       pending: doc.metadata.hasPendingWrites,
     );

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/services/json_list_store.dart';
 import 'package:moveup/services/sample_data.dart';
@@ -26,26 +24,12 @@ class ActivityStore extends JsonListStore<Activity> {
   Activity decode(Map<String, dynamic> json) => Activity.fromJson(json);
 
   @override
-  List<Activity> seed() => SampleData.activities(DateTime.now());
+  List<Activity> seed() => [];
 
-  // Data simulasi lama dibuat sebelum ada rute contoh; lengkapi supaya petanya tampil
   @override
   List<Activity>? upgrade(List<Activity> loaded) {
-    var changed = false;
-    final result = <Activity>[];
-    for (final a in loaded) {
-      final route = a.points.isEmpty ? SampleData.routeFor(a.id, a.type, a.distanceMeters, a.movingSeconds) : const <TrackPoint>[];
-      changed |= route.isNotEmpty;
-      result.add(route.isEmpty ? a : a.copyWith(points: route));
-    }
-    return changed ? result : null;
-  }
-
-  // Aktivitas yang direkam sebelum ada fitur akun diberikan ke akun pertama yang masuk
-  @override
-  Future<void> beforeLoad(File file) async {
-    final legacy = File('${file.parent.path}/activities.json');
-    if (!await file.exists() && await legacy.exists()) await legacy.rename(file.path);
+    final recorded = loaded.where((a) => !SampleData.isSampleId(a.id)).toList();
+    return recorded.length == loaded.length ? null : recorded;
   }
 
   List<Activity> between(DateTime from, DateTime to) =>

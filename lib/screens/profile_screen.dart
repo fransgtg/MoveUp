@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:moveup/widgets/inbox_badge.dart';
 import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/screens/change_password_screen.dart';
 import 'package:moveup/screens/chat_list_screen.dart';
@@ -132,10 +133,10 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuItem(context, Icons.notifications_none, "Pengaturan Reminder", onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderScreen()));
                   }),
-                  _buildMenuItem(context, Icons.chat_bubble_outline, "Pesan", onTap: () {
+                  _buildMenuItem(context, Icons.chat_bubble_outline, "Pesan", badge: InboxBadge.messages, onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen()));
                   }),
-                  _buildMenuItem(context, Icons.people_outline, "Teman", onTap: () {
+                  _buildMenuItem(context, Icons.people_outline, "Teman", badge: InboxBadge.friends, onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
                   }),
                   _buildMenuItem(context, Icons.security, "Keamanan Akun", onTap: () {
@@ -180,10 +181,11 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, {Color? color, VoidCallback? onTap}) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title, {Color? color, VoidCallback? onTap, Widget Function(Widget)? badge}) {
+    final leading = IconBadge(icon: icon, color: color, size: 20);
     return ListTile(
       onTap: onTap,
-      leading: IconBadge(icon: icon, color: color, size: 20),
+      leading: badge?.call(leading) ?? leading,
       title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
       trailing: const Icon(Icons.chevron_right, size: 20),
     );

@@ -4,6 +4,7 @@ import 'package:moveup/models/activity.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
 import 'package:moveup/screens/goal_detail_screen.dart';
 import 'package:moveup/services/activity_store.dart';
+import 'package:moveup/services/activity_post_service.dart';
 import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
@@ -17,6 +18,31 @@ class ActivityDetailScreen extends StatelessWidget {
   const ActivityDetailScreen({super.key, required this.activity});
 
   final Activity activity;
+
+  Future<void> _publish(BuildContext context, Activity activity) async {
+    final profile = ProfileService.instance.profile;
+    if (profile == null) return;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Posting ke Komunitas?',
+      message:
+          'Pengguna MoveUp yang terdaftar dapat melihat ringkasan dan '
+          'deskripsi aktivitas ini, mengomentari, dan membagikan postingannya. '
+          'Rute GPS dan foto tetap di perangkatmu.',
+      confirmLabel: 'Posting',
+      destructive: false,
+      icon: Icons.publish_outlined,
+    );
+    if (!confirmed || !context.mounted) return;
+    try {
+      await ActivityPostService.publish(activity, profile);
+      if (context.mounted) showSuccessMessage(context, 'Aktivitas diposting.');
+    } catch (_) {
+      if (context.mounted) {
+        showErrorMessage(context, 'Gagal memposting aktivitas.');
+      }
+    }
+  }
 
   Future<void> _confirmDelete(BuildContext context, Activity activity) async {
     final delete = await showConfirmDialog(
@@ -63,6 +89,11 @@ class ActivityDetailScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.publish_outlined),
+            tooltip: 'Posting ke Komunitas',
+            onPressed: () => _publish(context, activity),
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: "Edit",

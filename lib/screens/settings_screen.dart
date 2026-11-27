@@ -14,17 +14,16 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _loadSample(BuildContext context) async {
     final ok = await showConfirmDialog(
       context,
-      title: "Muat data simulasi?",
-      message: "Semua aktivitas, target, dan pengingat di perangkat ini akan diganti dengan data contoh.",
+      title: "Muat contoh target dan pengingat?",
+      message: "Target dan pengingat akun ini akan diganti dengan data contoh.",
       confirmLabel: "Ganti Data",
       icon: Icons.dataset_outlined,
     );
     if (!ok || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    await ActivityStore.instance.resetToSample();
     await GoalStore.instance.resetToSample();
     await ReminderStore.instance.resetToSample();
-    messenger.success("Data simulasi dimuat");
+    messenger.success("Contoh target dan pengingat dimuat");
   }
 
   Future<void> _clearAll(BuildContext context) async {
@@ -106,8 +105,8 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.dataset_outlined),
-              title: const Text("Muat data simulasi"),
-              subtitle: const Text("24 aktivitas, 6 target, dan 4 pengingat contoh"),
+                title: const Text("Muat contoh target dan pengingat"),
+                subtitle: const Text("6 target dan 4 pengingat contoh"),
               onTap: () => _loadSample(context),
             ),
             ListTile(

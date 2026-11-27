@@ -8,6 +8,7 @@ import 'package:moveup/services/auth_service.dart';
 import 'package:moveup/services/chat_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
+import 'package:moveup/widgets/inbox_badge.dart';
 
 // Daftar percakapan, terbaru di atas
 class ChatListScreen extends StatelessWidget {
@@ -38,7 +39,7 @@ class ChatListScreen extends StatelessWidget {
         actions: [
           IconButton(icon: const Icon(Icons.person_search), tooltip: "Cari pengguna", onPressed: () => _openSearch(context)),
           IconButton(
-            icon: const Icon(Icons.people_outline),
+            icon: const InboxBadge.friends(Icon(Icons.people_outline)),
             tooltip: 'Teman',
             onPressed: () => Navigator.push(
               context,
@@ -70,11 +71,11 @@ class ChatListScreen extends StatelessWidget {
               final name = chat.nameOf(other);
               final preview = chat.lastSenderId == me ? "Anda: ${chat.lastMessage}" : chat.lastMessage;
               return ListTile(
-                leading: CircleAvatar(
+                leading: InboxBadge.messages(CircleAvatar(
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
                   child: Text(initialsOf(name)),
-                ),
+                ), chatId: chat.id),
                 title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: Text(formatChatTime(chat.updatedAt), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),

@@ -3,6 +3,7 @@ import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
 import 'package:moveup/models/goal.dart';
 import 'package:moveup/screens/activity_detail_screen.dart';
+import 'package:moveup/screens/activity_community_screen.dart';
 import 'package:moveup/screens/add_activity_screen.dart';
 import 'package:moveup/screens/chat_list_screen.dart';
 import 'package:moveup/screens/coach_chat_screen.dart';
@@ -16,6 +17,8 @@ import 'package:moveup/services/reminder_store.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets.dart';
 import 'package:moveup/widgets/activity_feed_card.dart';
+import 'package:moveup/widgets/inbox_badge.dart';
+import 'package:moveup/screens/friends_screen.dart';
 import 'package:moveup/widgets/goal_progress_card.dart';
 
 // Beranda: ringkasan minggu ini dan feed aktivitas
@@ -84,6 +87,20 @@ class DashboardScreen extends StatelessWidget {
                           const _CoachCard(),
                           const SizedBox(height: AppSpacing.lg),
                           _PlanSection(now: now),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.people_outline),
+                              label: const Text('Komunitas'),
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const ActivityCommunityScreen(),
+                                ),
+                              ),
+                            ),
+                          ),
                           if (activities.isEmpty)
                             Padding(
                               padding: const EdgeInsets.only(
@@ -214,14 +231,22 @@ class _TrainingCoverState extends State<_TrainingCover> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  IconButton(
-                    style: style,
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    tooltip: 'Pesan',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ChatListScreen()),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        style: style,
+                        icon: const InboxBadge.friends(Icon(Icons.people_outline)),
+                        tooltip: 'Teman',
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen())),
+                      ),
+                      IconButton(
+                        style: style,
+                        icon: const InboxBadge.messages(Icon(Icons.chat_bubble_outline)),
+                        tooltip: 'Pesan',
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen())),
+                      ),
+                    ],
                   ),
                 ],
               ),

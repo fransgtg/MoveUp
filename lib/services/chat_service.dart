@@ -54,6 +54,34 @@ class ChatService {
       .snapshots(includeMetadataChanges: true)
       .map((snap) => snap.docs.map(ChatMessage.fromSnapshot).toList());
 
+  static CollectionReference<Map<String, dynamic>> _reads(String uid) =>
+      _db.collection('users').doc(uid).collection('chatReads');
+
+  static Stream<Map<String, Timestamp>> readPositions(String uid) =>
+      _reads(uid).snapshots().map((snap) => {
+        for (final doc in snap.docs) doc.id: doc['through'] as Timestamp,
+      });
+
+  static Stream<int> unreadMessages(String chatId, String sender, Timestamp? through) {
+    Query<Map<String, dynamic>> query =
+        _chats.doc(chatId).collection('messages').where('senderId', isEqualTo: sender);
+    if (through != null) {
+      query = query.where('createdAt', isGreaterThan: through);
+    }
+    // Badge menampilkan 99+ sehingga riwayat panjang tidak perlu diunduh semua.
+    return query.limit(100).snapshots().map((snap) => snap.size);
+  }
+
+  static Future<void> markRead(String uid, String chatId, Timestamp through) {
+    final ref = _reads(uid).doc(chatId);
+    return _db.runTransaction((tx) async {
+      final previous = (await tx.get(ref)).data()?['through'] as Timestamp?;
+      if (previous == null || previous.compareTo(through) < 0) {
+        tx.set(ref, {'through': through});
+      }
+    });
+  }
+
   // Dokumen percakapan baru dibuat saat pesan pertama dikirim
   static Future<void> send({
     required String fromUid,
@@ -61,6 +89,7 @@ class ChatService {
     required String toUid,
     required String toName,
     required String text,
+    String? activityPostId,
   }) {
     final chatId = Chat.idFor(fromUid, toUid);
     final chatRef = _chats.doc(chatId);
@@ -68,6 +97,7 @@ class ChatService {
       ..set(chatRef.collection('messages').doc(), {
         'senderId': fromUid,
         'text': text,
+        'activityPostId': ?activityPostId,
         'createdAt': FieldValue.serverTimestamp(),
       })
       ..set(chatRef, {

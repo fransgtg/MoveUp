@@ -6,6 +6,7 @@ import 'package:moveup/services/coach_service.dart';
 import 'package:moveup/services/goal_store.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/services/reminder_store.dart';
+import 'package:moveup/services/social_notifications.dart';
 
 // Pesan error yang ramah pengguna untuk dilempar ke UI
 class AuthFailure implements Exception {
@@ -94,7 +95,15 @@ class AuthService {
 
   static Future<void> signOut() async {
     // Keluar juga dari Google supaya lain kali pemilih akun muncul lagi
+    final uid = currentUser?.uid;
     await _auth.signOut();
+    if (uid != null) {
+      try {
+        await SocialNotifications.clearAccount(uid);
+      } catch (e) {
+        debugPrint('Gagal membersihkan notifikasi: $e');
+      }
+    }
     CoachService.instance.reset();
     ProfileService.instance.clear();
     ActivityStore.instance.clear();

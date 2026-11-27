@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/models/activity.dart';
+import 'package:moveup/models/user_profile.dart';
 import 'package:moveup/services/profile_service.dart';
 import 'package:moveup/utils/format.dart';
 import 'package:moveup/widgets/activity_media.dart';
 
 // Kartu aktivitas di beranda, bergaya feed Strava
 class ActivityFeedCard extends StatelessWidget {
-  const ActivityFeedCard({super.key, required this.activity, this.onTap});
+  const ActivityFeedCard({
+    super.key,
+    required this.activity,
+    this.author,
+    this.onTap,
+    this.actions,
+  });
 
   final Activity activity;
+  final String? author;
   final VoidCallback? onTap;
+  final Widget? actions;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final (paceLabel, paceValue) = paceOrSpeed(activity);
+    final name = author ?? ProfileService.instance.profile?.name ?? 'Pengguna';
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -32,17 +42,26 @@ class ActivityFeedCard extends StatelessWidget {
                   CircleAvatar(
                     backgroundColor: scheme.onSurface,
                     foregroundColor: scheme.surface,
-                    child: Text(ProfileService.instance.profile?.initials ?? '?', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      initialsOf(name),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(ProfileService.instance.profile?.name ?? 'Pengguna', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         Text(
                           formatRelativeDateTime(activity.startTime),
-                          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -50,7 +69,10 @@ class ActivityFeedCard extends StatelessWidget {
                   ),
                   // Label jenis olahraga beraksen
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -58,11 +80,19 @@ class ActivityFeedCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(activity.type.icon, size: 14, color: scheme.primary),
+                        Icon(
+                          activity.type.icon,
+                          size: 14,
+                          color: scheme.primary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           activity.type.label,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.primary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -77,18 +107,28 @@ class ActivityFeedCard extends StatelessWidget {
             if (activity.description.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                child: Text(activity.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  activity.description,
+                  maxLines: onTap == null ? null : 2,
+                  overflow: onTap == null ? null : TextOverflow.ellipsis,
+                ),
               ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: IntrinsicHeight(
                 child: Row(
                   children: [
-                    _FeedStat(label: 'Jarak', value: '${formatKm(activity.distanceMeters)} km'),
+                    _FeedStat(
+                      label: 'Jarak',
+                      value: '${formatKm(activity.distanceMeters)} km',
+                    ),
                     VerticalDivider(width: 24, color: scheme.outline),
                     _FeedStat(label: paceLabel, value: paceValue),
                     VerticalDivider(width: 24, color: scheme.outline),
-                    _FeedStat(label: 'Waktu', value: formatDurationShort(activity.movingSeconds)),
+                    _FeedStat(
+                      label: 'Waktu',
+                      value: formatDurationShort(activity.movingSeconds),
+                    ),
                   ],
                 ),
               ),
@@ -102,6 +142,7 @@ class ActivityFeedCard extends StatelessWidget {
                   child: ActivityMedia(activity: activity),
                 ),
               ),
+            ?actions,
           ],
         ),
       ),
@@ -121,9 +162,21 @@ class _FeedStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(), style: AppTheme.display(12, color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 1.2)),
+          Text(
+            label.toUpperCase(),
+            style: AppTheme.display(
+              12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: AppTheme.display(22), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            value,
+            style: AppTheme.display(22),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

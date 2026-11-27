@@ -4,7 +4,7 @@ import 'package:moveup/models/activity.dart';
 import 'package:moveup/models/goal.dart';
 import 'package:moveup/models/reminder.dart';
 
-// Data simulasi untuk akun baru atau saat dimuat ulang dari Pengaturan.
+// Data simulasi untuk target, pengingat, dan pengujian aktivitas.
 // Tanggal dihitung mundur dari hari ini supaya target mingguan dan bulanan langsung terisi.
 class SampleData {
   // (hari lalu, jam, menit, olahraga, km, durasi menit, judul, catatan)

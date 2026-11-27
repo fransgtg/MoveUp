@@ -11,7 +11,9 @@ import 'package:moveup/widgets.dart';
 
 // Cari pengguna lain berdasarkan awal nama atau email lengkap
 class UserSearchScreen extends StatefulWidget {
-  const UserSearchScreen({super.key});
+  const UserSearchScreen({super.key, this.selectRecipient = false});
+
+  final bool selectRecipient;
 
   @override
   State<UserSearchScreen> createState() => _UserSearchScreenState();
@@ -19,7 +21,7 @@ class UserSearchScreen extends StatefulWidget {
 
 class _UserSearchScreenState extends State<UserSearchScreen> {
   late final _uid = AuthService.currentUser?.uid;
-  late final _friendships = FriendshipService.watch(_uid!);
+  late var _friendships = FriendshipService.watch(_uid!);
   final _sending = <String>{};
   Timer? _debounce;
   int _searchVersion = 0;
@@ -94,6 +96,10 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   }
 
   void _openChat(PublicProfile user) {
+    if (widget.selectRecipient) {
+      Navigator.pop(context, user);
+      return;
+    }
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -107,7 +113,11 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
   Widget build(BuildContext context) {
     final uid = _uid;
     return Scaffold(
-      appBar: AppBar(title: const Text("Cari Pengguna")),
+      appBar: AppBar(
+        title: Text(
+          widget.selectRecipient ? 'Pilih penerima' : 'Cari Pengguna',
+        ),
+      ),
       body: uid == null
           ? const EmptyStateWidget(
               message: 'Masuk dengan akun MoveUp untuk mencari pengguna.',
@@ -131,7 +141,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 if (_loading) const LinearProgressIndicator(minHeight: 2),
                 Expanded(
                   child: StreamBuilder<List<Friendship>>(
-                    stream: _friendships,
+                    stream: widget.selectRecipient ? null : _friendships,
                     builder: (context, snapshot) =>
                         _buildResults(uid, snapshot),
                   ),
@@ -204,33 +214,33 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (status != null) Text(status),
+              if (!widget.selectRecipient) ...[
+                if (status != null) Text(status),
+                if (snapshot.hasError)
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _friendships = FriendshipService.watch(uid);
+                    }),
+                    child: const Text('Coba lagi'),
+                  )
+                else if (friendship == null)
+                  OutlinedButton.icon(
+                    onPressed: snapshot.hasData && !_sending.contains(user.uid)
+                        ? () => _sendRequest(uid, user.uid)
+                        : null,
+                    icon: const Icon(Icons.person_add_outlined, size: 18),
+                    label: Text(_sending.contains(user.uid) ? 'Mengirim…' : 'Tambah teman'),
+                  ),
+              ],
             ],
           ),
-          isThreeLine: status != null,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_sending.contains(user.uid))
-                const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else if (friendship == null && !snapshot.hasError)
-                IconButton(
-                  tooltip: 'Tambah teman',
-                  icon: const Icon(Icons.person_add_outlined),
-                  onPressed: snapshot.hasData
-                      ? () => _sendRequest(uid, user.uid)
-                      : null,
+          trailing: widget.selectRecipient
+              ? const Icon(Icons.chevron_right)
+              : IconButton(
+                  tooltip: 'Kirim pesan',
+                  icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                  onPressed: () => _openChat(user),
                 ),
-              IconButton(
-                tooltip: 'Kirim pesan',
-                icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                onPressed: () => _openChat(user),
-              ),
-            ],
-          ),
           onTap: () => _openChat(user),
         );
       },

@@ -5,6 +5,8 @@ import 'package:moveup/screens/auth_gate.dart';
 import 'package:moveup/services/settings_service.dart';
 import 'package:moveup/theme.dart';
 import 'package:moveup/services/photo_store.dart';
+import 'package:moveup/services/profile_service.dart';
+import 'package:moveup/widgets/inbox_badge.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,14 @@ class MoveUpApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         themeMode: SettingsService.instance.themeMode,
         home: const AuthGate(),
+        builder: (_, child) => ListenableBuilder(
+          listenable: ProfileService.instance,
+          child: child,
+          builder: (_, navigator) => AccountInbox(
+            uid: ProfileService.instance.profile?.uid,
+            child: navigator!,
+          ),
+        ),
       ),
     );
   }
